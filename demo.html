@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>annotate-html demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: #fafbfc; color: #1a1d26; line-height: 1.6; }
+  .container { max-width: 720px; margin: 0 auto; padding: 60px 24px; }
+  h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 8px; }
+  .subtitle { font-size: 18px; color: #5c6274; margin-bottom: 40px; }
+  .card { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 16px;
+    padding: 28px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .card h2 { font-size: 20px; margin-bottom: 8px; }
+  .card p { font-size: 15px; color: #5c6274; }
+  .btn { display: inline-block; padding: 12px 28px; background: #1a1d26; color: #fff;
+    border: none; border-radius: 100px; font-size: 15px; font-weight: 600;
+    cursor: pointer; text-decoration: none; margin-top: 24px; }
+  .btn:hover { opacity: .9; }
+  .badge { display: inline-block; padding: 4px 14px; background: rgba(74,124,236,.08);
+    color: #4a7cec; border-radius: 100px; font-size: 13px; font-weight: 500;
+    margin-bottom: 20px; }
+  footer { text-align: center; padding: 40px 24px; color: #9ba2b4; font-size: 13px; }
+  kbd { background: #f0f1f4; border: 1px solid rgba(0,0,0,.08); border-radius: 4px;
+    padding: 2px 6px; font-size: 12px; font-family: monospace; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Demo Page</span>
+    <h1>annotate-html</h1>
+    <p class="subtitle">Click <kbd>Alt+A</kbd> or the Annotate button to start. Click any element to leave feedback.</p>
+
+    <div class="card">
+      <h2>Click me</h2>
+      <p>Try clicking this card. A popup will appear where you can type your feedback. The annotation captures the selector path, CSS classes, computed styles, and position.</p>
+    </div>
+
+    <div class="card">
+      <h2>Select text</h2>
+      <p>Highlight some text in this paragraph, then click the element. The selected text will be included in the annotation output, making it easy for your AI agent to find the exact content.</p>
+    </div>
+
+    <div class="card">
+      <h2>Copy output</h2>
+      <p>After adding annotations, click the Copy button in the toolbar. The structured markdown is ready to paste into Claude Code, Cursor, or any AI coding assistant.</p>
+    </div>
+
+    <a href="#" class="btn">Example Button</a>
+  </div>
+
+  <footer>
+    annotate-html &mdash; visual feedback for AI agents. No React, no build step.
+  </footer>
+
+  <script src="annotate.js"></script>
+</body>
+</html>
