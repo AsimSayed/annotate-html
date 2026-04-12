@@ -556,49 +556,6 @@
       '#ann-toast svg{width:14px;height:14px;color:#C96442}',
       '#ann-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}',
 
-      // Rulers (top + left edge)
-      '#ann-ruler-h,#ann-ruler-v{position:fixed;z-index:99988;',
-      'background:rgba(250,249,245,.92);backdrop-filter:blur(6px);',
-      'pointer-events:auto;cursor:crosshair;',
-      'transition:opacity .2s ease}',
-      '#ann-ruler-h{top:0;left:20px;right:0;height:20px;',
-      'border-bottom:1px solid rgba(31,30,29,.08)}',
-      '#ann-ruler-v{top:20px;left:0;bottom:0;width:20px;',
-      'border-right:1px solid rgba(31,30,29,.08)}',
-      '#ann-ruler-corner{position:fixed;z-index:99989;top:0;left:0;width:20px;height:20px;',
-      'background:rgba(250,249,245,.92);backdrop-filter:blur(6px);',
-      'border-right:1px solid rgba(31,30,29,.08);',
-      'border-bottom:1px solid rgba(31,30,29,.08)}',
-      '#ann-ruler-h canvas,#ann-ruler-v canvas{display:block}',
-
-      // Guide lines (dropped from rulers)
-      '.ann-guide{position:fixed;z-index:99987;pointer-events:auto}',
-      '.ann-guide-h{left:0;right:0;height:1px;cursor:ns-resize}',
-      '.ann-guide-v{top:0;bottom:0;width:1px;cursor:ew-resize}',
-      // Guide handle (drag affordance + label + close)
-      '.ann-guide-handle{position:absolute;display:flex;align-items:center;gap:2px;',
-      'background:#FAF9F5;border:1px solid rgba(31,30,29,.10);',
-      'border-radius:6px;padding:3px 3px 3px 8px;',
-      'box-shadow:0 1px 6px rgba(31,30,29,.10);',
-      'cursor:grab;user-select:none;',
-      'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;',
-      'font-size:10px;font-weight:500;color:#1F1E1D;white-space:nowrap;',
-      'font-variant-numeric:tabular-nums;',
-      'opacity:0;transition:opacity .15s ease}',
-      '.ann-guide:hover .ann-guide-handle,.ann-guide-handle.dragging{opacity:1}',
-      '.ann-guide-handle:active{cursor:grabbing}',
-      '.ann-guide-h .ann-guide-handle{left:24px;top:50%;transform:translateY(-50%)}',
-      '.ann-guide-v .ann-guide-handle{top:24px;left:50%;transform:translateX(-50%)}',
-      '.ann-guide-close{background:none;border:none;color:#9A968E;cursor:pointer;',
-      'padding:2px;border-radius:4px;display:flex;align-items:center;justify-content:center;',
-      'transition:color .12s,background .12s}',
-      '@media (hover:hover){.ann-guide-close:hover{background:rgba(31,30,29,.08);color:#1F1E1D}}',
-      '.ann-guide-close svg{width:12px;height:12px;display:block}',
-      // Wider invisible hit area on the line itself
-      '.ann-guide::before{content:"";position:absolute}',
-      '.ann-guide-h::before{left:0;right:0;top:-4px;bottom:-4px}',
-      '.ann-guide-v::before{top:0;bottom:0;left:-4px;right:-4px}',
-
       // Reduced motion
       '@media (prefers-reduced-motion:reduce){',
       '#ann-toolbar,#ann-popup,#ann-toast,.ann-marker,#ann-hover-highlight{',
@@ -862,7 +819,7 @@
     });
     closeBtn.appendChild(iconEl("x"));
 
-    var toggleKey = (isMac ? "\u2325" : "Alt") + "A";
+    var toggleKey = (isMac ? "\u2325" : "Alt") + "+A";
     var extKey = isMac ? "\u2325\u21E7A" : "Alt+Shift+A";
     addTip(toggleBtn, "Toggle mode", toggleKey);
     addTip(colorSwatch, "Marker color", "M");
@@ -898,247 +855,11 @@
     toolbar.appendChild(collapsedView);
 
     document.body.appendChild(toolbar);
-
-    // Create rulers (visible when annotation mode is active)
-    createRulers();
   }
 
   // ═══════════════════════════════════════════
   // Actions
   // ═══════════════════════════════════════════
-
-  // ═══════════════════════════════════════════
-  // Rulers & Guides
-  // ═══════════════════════════════════════════
-
-  var rulerH, rulerV, rulerCorner, rulerHCanvas, rulerVCanvas;
-  var guides = [];
-
-  function createRulers() {
-    rulerCorner = el("div", { id: "ann-ruler-corner" });
-    document.body.appendChild(rulerCorner);
-
-    rulerH = el("div", { id: "ann-ruler-h" });
-    rulerHCanvas = document.createElement("canvas");
-    rulerHCanvas.height = 20;
-    rulerH.appendChild(rulerHCanvas);
-    initRulerDrag(rulerH, "v");
-    document.body.appendChild(rulerH);
-
-    rulerV = el("div", { id: "ann-ruler-v" });
-    rulerVCanvas = document.createElement("canvas");
-    rulerVCanvas.width = 20;
-    rulerV.appendChild(rulerVCanvas);
-    initRulerDrag(rulerV, "h");
-    document.body.appendChild(rulerV);
-
-    drawRulers();
-  }
-
-  function initRulerDrag(rulerEl, guideDir) {
-    var preview = null;
-
-    rulerEl.addEventListener("mousedown", function (e) {
-      e.preventDefault();
-      preview = el("div", { className: "ann-guide ann-guide-" + guideDir });
-      preview.style.background = state.markerColor;
-      preview.style.opacity = "0.5";
-      var lbl = el("span", { className: "ann-guide-label" }, "0px");
-      preview.appendChild(lbl);
-      document.body.appendChild(preview);
-
-      function onMove(ev) {
-        if (!preview) return;
-        var pos, pagePos;
-        if (guideDir === "h") {
-          pos = ev.clientY;
-          pagePos = pos + window.scrollY;
-          preview.style.top = pos + "px";
-        } else {
-          pos = ev.clientX;
-          pagePos = pos + window.scrollX;
-          preview.style.left = pos + "px";
-        }
-        preview.querySelector(".ann-guide-label").textContent = Math.round(pagePos) + "px";
-        // If dragged back onto the ruler, dim it
-        var onRuler = guideDir === "h" ? ev.clientX < 20 : ev.clientY < 20;
-        preview.style.opacity = onRuler ? "0.2" : "0.5";
-      }
-
-      function onUp(ev) {
-        document.removeEventListener("mousemove", onMove);
-        document.removeEventListener("mouseup", onUp);
-        if (!preview) return;
-        // Check if dropped back on the ruler — cancel
-        var onRuler = guideDir === "h" ? ev.clientX < 20 : ev.clientY < 20;
-        if (preview.parentNode) preview.parentNode.removeChild(preview);
-        preview = null;
-        if (onRuler) return;
-
-        var viewPos, pagePos;
-        if (guideDir === "h") {
-          viewPos = ev.clientY;
-          pagePos = viewPos + window.scrollY;
-        } else {
-          viewPos = ev.clientX;
-          pagePos = viewPos + window.scrollX;
-        }
-        addGuide(guideDir, viewPos, pagePos);
-      }
-
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
-    });
-  }
-
-  function drawRulers() {
-    if (!rulerHCanvas || !rulerVCanvas) return;
-    var dpr = window.devicePixelRatio || 1;
-    var w = window.innerWidth - 20;
-    var h = window.innerHeight - 20;
-    var sx = window.scrollX;
-    var sy = window.scrollY;
-    var tickColor = "rgba(31,30,29,.25)";
-    var textColor = "rgba(31,30,29,.5)";
-
-    // Horizontal ruler
-    rulerHCanvas.width = w * dpr;
-    rulerHCanvas.height = 20 * dpr;
-    rulerHCanvas.style.width = w + "px";
-    rulerHCanvas.style.height = "20px";
-    var ctxH = rulerHCanvas.getContext("2d");
-    ctxH.scale(dpr, dpr);
-    ctxH.font = "9px ui-monospace,SFMono-Regular,Menlo,monospace";
-    ctxH.fillStyle = textColor;
-    ctxH.strokeStyle = tickColor;
-    ctxH.lineWidth = 0.5;
-    var startX = Math.floor(sx / 10) * 10;
-    for (var px = startX; px < sx + w; px += 10) {
-      var x = px - sx;
-      var isMajor = px % 100 === 0;
-      var isMid = px % 50 === 0;
-      ctxH.beginPath();
-      ctxH.moveTo(x + 0.5, 20);
-      ctxH.lineTo(x + 0.5, isMajor ? 4 : isMid ? 10 : 14);
-      ctxH.stroke();
-      if (isMajor) {
-        ctxH.fillText(String(px), x + 3, 12);
-      }
-    }
-
-    // Vertical ruler
-    rulerVCanvas.width = 20 * dpr;
-    rulerVCanvas.height = h * dpr;
-    rulerVCanvas.style.width = "20px";
-    rulerVCanvas.style.height = h + "px";
-    var ctxV = rulerVCanvas.getContext("2d");
-    ctxV.scale(dpr, dpr);
-    ctxV.font = "9px ui-monospace,SFMono-Regular,Menlo,monospace";
-    ctxV.fillStyle = textColor;
-    ctxV.strokeStyle = tickColor;
-    ctxV.lineWidth = 0.5;
-    var startY = Math.floor(sy / 10) * 10;
-    for (var py = startY; py < sy + h; py += 10) {
-      var y = py - sy;
-      var isMajorY = py % 100 === 0;
-      var isMidY = py % 50 === 0;
-      ctxV.beginPath();
-      ctxV.moveTo(20, y + 0.5);
-      ctxV.lineTo(isMajorY ? 4 : isMidY ? 10 : 14, y + 0.5);
-      ctxV.stroke();
-      if (isMajorY) {
-        ctxV.save();
-        ctxV.translate(12, y + 3);
-        ctxV.rotate(-Math.PI / 2);
-        ctxV.fillText(String(py), 0, 0);
-        ctxV.restore();
-      }
-    }
-  }
-
-  function addGuide(dir, viewPos, pagePos) {
-    var guide = el("div", { className: "ann-guide ann-guide-" + dir });
-    guide.style[dir === "h" ? "top" : "left"] = viewPos + "px";
-    guide.style.background = state.markerColor;
-    guide._pagePos = pagePos;
-    guide._dir = dir;
-
-    // Handle: drag affordance + px label + close button
-    var handle = el("div", { className: "ann-guide-handle" });
-    var label = el("span", {}, String(Math.round(pagePos)) + "px");
-
-    var closeBtn = el("button", { className: "ann-guide-close", "aria-label": "Remove guide" });
-    closeBtn.appendChild(iconEl("x"));
-    closeBtn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      removeGuide(guide);
-    });
-
-    handle.appendChild(label);
-    handle.appendChild(closeBtn);
-    guide.appendChild(handle);
-
-    // Drag from handle or line to reposition; drag to ruler edge to remove
-    function startDrag(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      handle.classList.add("dragging");
-      function onMove(ev) {
-        var pos, pp;
-        if (dir === "h") {
-          pos = ev.clientY;
-          pp = pos + window.scrollY;
-          guide.style.top = pos + "px";
-        } else {
-          pos = ev.clientX;
-          pp = pos + window.scrollX;
-          guide.style.left = pos + "px";
-        }
-        guide._pagePos = pp;
-        label.textContent = Math.round(pp) + "px";
-        var onRuler = dir === "h" ? ev.clientX < 20 : ev.clientY < 20;
-        guide.style.opacity = onRuler ? "0.3" : "1";
-      }
-      function onUp(ev) {
-        document.removeEventListener("mousemove", onMove);
-        document.removeEventListener("mouseup", onUp);
-        handle.classList.remove("dragging");
-        var onRuler = dir === "h" ? ev.clientX < 20 : ev.clientY < 20;
-        if (onRuler) { removeGuide(guide); return; }
-        guide.style.opacity = "1";
-      }
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
-    }
-
-    handle.addEventListener("mousedown", startDrag);
-    guide.addEventListener("mousedown", function (e) {
-      if (e.target === guide || e.target === guide.querySelector("::before")) startDrag(e);
-    });
-
-    document.body.appendChild(guide);
-    guides.push(guide);
-  }
-
-  function removeGuide(guide) {
-    if (guide.parentNode) guide.parentNode.removeChild(guide);
-    guides = guides.filter(function (g) { return g !== guide; });
-  }
-
-  function updateGuidePositions() {
-    guides.forEach(function (g) {
-      if (g._dir === "h") {
-        g.style.top = (g._pagePos - window.scrollY) + "px";
-      } else {
-        g.style.left = (g._pagePos - window.scrollX) + "px";
-      }
-    });
-  }
-
-  function clearGuides() {
-    guides.forEach(function (g) { if (g.parentNode) g.parentNode.removeChild(g); });
-    guides = [];
-  }
 
   function toggleActive() {
     state.active = !state.active;
@@ -1182,13 +903,6 @@
     eyeIconWrap.appendChild(iconEl(state.markersHidden ? "eyeOff" : "eye"));
     if (state.markersHidden) eyeBtn.classList.add("hidden-state");
     else eyeBtn.classList.remove("hidden-state");
-    // Toggle rulers and guides visibility
-    if (rulerH) rulerH.style.display = state.markersHidden ? "none" : "";
-    if (rulerV) rulerV.style.display = state.markersHidden ? "none" : "";
-    if (rulerCorner) rulerCorner.style.display = state.markersHidden ? "none" : "";
-    guides.forEach(function (g) {
-      g.style.display = state.markersHidden ? "none" : "";
-    });
   }
 
   function updateCount() {
@@ -1496,9 +1210,6 @@
     while (node) {
       if (node.id === "ann-toolbar" || node.id === "ann-popup" ||
           node.id === "ann-color-picker" || node.id === "ann-tip" ||
-          node.id === "ann-ruler-h" || node.id === "ann-ruler-v" ||
-          node.id === "ann-ruler-corner" ||
-          (node.className && typeof node.className === "string" && node.className.indexOf("ann-guide") !== -1) ||
           node.id === "ann-hover-highlight" || node.id === "ann-hover-label" ||
           (node.className && typeof node.className === "string" && node.className.indexOf("ann-marker") !== -1)) {
         return true;
@@ -1599,11 +1310,6 @@
     document.addEventListener("keydown", handleKeydown);
     window.addEventListener("scroll", function () {
       if (state.active) hideHover();
-      drawRulers();
-      updateGuidePositions();
-    }, { passive: true });
-    window.addEventListener("resize", function () {
-      drawRulers();
     }, { passive: true });
 
     // Publish a tiny control hook so re-injection (Chrome extension click,
