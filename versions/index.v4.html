@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>annotate-html — visual feedback for AI coding agents</title>
+  <meta name="description" content="A zero-dependency annotation tool for AI coding agents. The page is the demo." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ========================================================
+       Tokens — annotate.js native palette
+       ======================================================== */
+    :root {
+      --paper:        #FAF9F5;
+      --paper-2:      #F5F4ED;
+      --paper-3:      #F0EEE6;
+      --ink:          #1F1E1D;
+      --ink-2:        #3F3D3A;
+      --ink-3:        #75726B;
+      --ink-4:        #A8A49B;
+      --rule:         #E6E2D6;
+      --rule-soft:    #EFEBDD;
+      --accent:       #C96442;
+      --accent-soft:  rgba(201, 100, 66, 0.08);
+      --accent-edge:  rgba(201, 100, 66, 0.22);
+
+      --grid-dot:     rgba(31, 30, 29, 0.085);
+      --wf-fill:      rgba(31, 30, 29, 0.07);
+      --wf-edge:      rgba(31, 30, 29, 0.16);
+
+      --ease-out:     cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-in-out:  cubic-bezier(0.77, 0, 0.175, 1);
+      --ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+
+      --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-serif:   'Newsreader', Georgia, serif;
+      --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--ink);
+      background: var(--paper);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: 'ss01', 'cv11';
+
+      display: grid;
+      grid-template-rows: 56px 1fr 52px;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    code, pre { font-family: var(--font-mono); }
+    button { font: inherit; }
+
+    /* ========================================================
+       NAV — thin top bar
+       ======================================================== */
+    .nav {
+      position: relative;
+      z-index: 30;
+      border-bottom: 1px solid var(--rule);
+      padding: 0 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(250, 249, 245, 0.88);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      backdrop-filter: saturate(180%) blur(12px);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+    .brand-mark {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 1.5px solid var(--paper);
+      box-shadow: 0 0 0 1px var(--accent),
+                  0 6px 14px -6px rgba(201, 100, 66, 0.4);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+      padding: 3px 9px;
+      border: 1px solid var(--rule);
+      border-radius: 100px;
+      background: var(--paper);
+    }
+    .pill .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 var(--accent-edge);
+      animation: dot-pulse 2.4s ease-out infinite;
+    }
+    @keyframes dot-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--accent-edge); }
+      50%      { box-shadow: 0 0 0 4px rgba(201, 100, 66, 0); }
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+    .nav-right a { transition: color 160ms var(--ease-out); }
+    .nav-right a:hover { color: var(--ink); }
+    .nav-right .gh {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .nav-right .meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-4);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ========================================================
+       CANVAS — dot grid + wireframe + popups + connectors
+       ======================================================== */
+    .canvas {
+      position: relative;
+      overflow: hidden;
+      background-color: var(--paper);
+      background-image: radial-gradient(var(--grid-dot) 1.1px, transparent 1.1px);
+      background-size: 22px 22px;
+      background-position: 0 0;
+    }
+    /* Soft vignette so dots fade at the edges */
+    .canvas::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at center,
+                        transparent 0%,
+                        transparent 55%,
+                        var(--paper) 100%);
+      z-index: 1;
+    }
+
+    /* ----- SVG connector layer (above grid, below popups) ----- */
+    #connector {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+      overflow: visible;
+    }
+    #connector path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 1;
+      stroke-dasharray: 2 4;
+      stroke-linecap: round;
+      stroke-dashoffset: 0;
+      opacity: 0;
+      transition: opacity 700ms var(--ease-out);
+    }
+    #connector path.is-on { opacity: 0.45; }
+
+    /* ========================================================
+       WIREFRAME — abstract shapes representing "any page"
+       ======================================================== */
+    .wireframe {
+      position: absolute;
+      left: clamp(40px, 7%, 110px);
+      top: 50%;
+      transform: translateY(-50%);
+      width: clamp(220px, 22vw, 300px);
+      z-index: 3;
+
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+
+      opacity: 0;
+      transition: opacity 600ms var(--ease-out);
+    }
+    .wireframe.is-on { opacity: 1; }
+
+    .wf-block {
+      position: relative;
+      background: var(--wf-fill);
+      border: 1px solid var(--wf-edge);
+      border-radius: 6px;
+    }
+    .wf-block.image {
+      height: 78px;
+    }
+    .wf-block.image::after {
+      content: '';
+      position: absolute;
+      left: 14%; right: 14%;
+      top: 30%;
+      height: 30%;
+      border: 1px solid var(--wf-edge);
+      border-radius: 4px;
+      background: linear-gradient(135deg, transparent 48%, var(--wf-edge) 49%, var(--wf-edge) 51%, transparent 52%);
+    }
+
+    .wf-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding: 2px 0;
+    }
+    .wf-line {
+      height: 7px;
+      background: var(--wf-fill);
+      border-radius: 100px;
+    }
+    .wf-line.w-100 { width: 100%; }
+    .wf-line.w-90  { width: 90%; }
+    .wf-line.w-72  { width: 72%; }
+    .wf-line.w-60  { width: 60%; }
+    .wf-line.w-45  { width: 45%; }
+
+    .wf-codebox {
+      height: 32px;
+      background: var(--wf-fill);
+      border: 1px solid var(--wf-edge);
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .wf-codebox::before {
+      content: '';
+      position: absolute;
+      left: 12px; top: 50%;
+      width: 60%; height: 6px;
+      background: var(--wf-edge);
+      border-radius: 100px;
+      transform: translateY(-50%);
+    }
+    .wf-codebox::after {
+      content: '';
+      position: absolute;
+      right: 12px; top: 50%;
+      width: 24px; height: 14px;
+      background: var(--wf-edge);
+      border-radius: 3px;
+      transform: translateY(-50%);
+    }
+
+    .wf-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .wf-btn {
+      width: 72px;
+      height: 26px;
+      background: var(--wf-fill);
+      border: 1px solid var(--wf-edge);
+      border-radius: 6px;
+    }
+    .wf-btn.solid {
+      background: rgba(31, 30, 29, 0.32);
+      border-color: rgba(31, 30, 29, 0.40);
+    }
+
+    /* ========================================================
+       MARKERS — exact annotate.js spec, planted on wireframe
+       ======================================================== */
+    .marker {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--paper);
+      border: 1.5px solid var(--paper);
+      box-shadow:
+        0 0 0 1px var(--accent),
+        0 6px 14px -4px rgba(201, 100, 66, 0.32);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: -0.02em;
+      z-index: 4;
+
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 360ms var(--ease-out),
+                  transform 460ms var(--ease-bounce);
+    }
+    .marker.is-on { opacity: 1; transform: scale(1); }
+
+    /* Marker positions tied to wireframe child elements
+       (set via JS so they track the wireframe's natural layout) */
+
+    /* ========================================================
+       POPUPS — replica of annotate.js popup chrome
+       ======================================================== */
+    .popup {
+      position: absolute;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      box-shadow:
+        0 1px 0 rgba(31, 30, 29, 0.04),
+        0 4px 14px rgba(31, 30, 29, 0.05),
+        0 24px 50px -28px rgba(31, 30, 29, 0.22);
+      padding: 13px 16px 16px;
+      z-index: 5;
+
+      opacity: 0;
+      transform: translateX(8px);
+      transition: opacity 460ms var(--ease-out),
+                  transform 480ms var(--ease-out);
+    }
+    .popup.is-on {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .pop-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .pop-chev {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      color: var(--ink-3);
+    }
+    .pop-label {
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .pop-sel {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--ink-3);
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      padding: 2px 7px;
+      border-radius: 4px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pop-spacer { flex: 1; }
+
+    /* ---- Popup 1: title ---- */
+    .popup.p-title {
+      left: clamp(360px, 38%, 580px);
+      top: 6%;
+      width: clamp(380px, 33vw, 460px);
+    }
+    .popup.p-title h1 {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(34px, 3.6vw, 48px);
+      line-height: 1.04;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+    }
+    .popup.p-title h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    /* ---- Popup 2: lede ---- */
+    .popup.p-lede {
+      left: clamp(420px, 46%, 700px);
+      top: 36%;
+      width: clamp(320px, 28vw, 380px);
+    }
+    .popup.p-lede p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ink-2);
+    }
+    .popup.p-lede p strong {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* ---- Popup 3: install ---- */
+    .popup.p-install {
+      left: clamp(360px, 38%, 580px);
+      top: 60%;
+      width: clamp(360px, 32vw, 440px);
+    }
+    .install-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+    }
+    .install-row code {
+      flex: 1;
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .install-row .tag  { color: var(--accent); }
+    .install-row .attr { color: var(--ink-2); }
+    .install-row .str  { color: var(--ink-3); }
+    .install-row .ell  { color: var(--ink-4); }
+    .copy-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--paper);
+      background: var(--ink);
+      border: 1px solid var(--ink);
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 160ms var(--ease-out),
+                  border-color 160ms var(--ease-out),
+                  transform 120ms var(--ease-out);
+    }
+    .copy-btn:hover { background: var(--ink-2); }
+    .copy-btn:active { transform: scale(0.97); }
+    .copy-btn.copied {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .copy-btn .kbd {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.18);
+    }
+    .copy-btn svg { width: 11px; height: 11px; }
+
+    /* ---- Popup 4: cta ---- */
+    .popup.p-cta {
+      left: clamp(420px, 46%, 700px);
+      top: 78%;
+      width: clamp(300px, 26vw, 360px);
+    }
+    .ctas {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 160ms var(--ease-out),
+                  border-color 160ms var(--ease-out),
+                  transform 120ms var(--ease-out);
+    }
+    .btn:hover {
+      background: var(--paper-2);
+      border-color: var(--ink-4);
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn svg { width: 13px; height: 13px; }
+    .btn .arrow { width: 11px; transition: transform 220ms var(--ease-out); }
+    .btn:hover .arrow { transform: translateX(3px); }
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+      box-shadow:
+        0 1px 0 rgba(31, 30, 29, 0.06),
+        0 6px 14px -4px rgba(31, 30, 29, 0.18);
+    }
+    .btn-primary:hover {
+      background: var(--ink-2);
+      border-color: var(--ink-2);
+    }
+
+    /* ========================================================
+       FOOTER strip
+       ======================================================== */
+    .foot {
+      position: relative;
+      z-index: 30;
+      border-top: 1px solid var(--rule);
+      padding: 0 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(250, 249, 245, 0.92);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      backdrop-filter: saturate(180%) blur(12px);
+      gap: 24px;
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+    .workflow {
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+    }
+    .workflow span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-right: 1px solid var(--rule);
+    }
+    .workflow span:last-child { border-right: none; }
+    .workflow span strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .levels {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .levels span {
+      color: var(--ink-4);
+      transition: color 160ms var(--ease-out);
+      cursor: default;
+      position: relative;
+    }
+    .levels span.active {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .levels span.active::before {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 50%;
+      width: 4px; height: 4px;
+      transform: translateY(-50%);
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .creds {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      color: var(--ink-3);
+    }
+    .creds .sep { color: var(--ink-4); }
+    .creds a { color: var(--ink-2); }
+    .creds a:hover { color: var(--ink); }
+
+    /* Lift annotate.js corner toolbar above the footer */
+    #ann-toolbar { bottom: 68px !important; }
+
+    /* ========================================================
+       Reduced motion
+       ======================================================== */
+    @media (prefers-reduced-motion: reduce) {
+      .marker, .popup, .wireframe, #connector path {
+        transition: opacity 240ms ease;
+      }
+      .marker { transform: none; }
+      .popup { transform: none; }
+      .pill .dot { animation: none; }
+    }
+
+    /* ========================================================
+       Narrow viewports — graceful scroll fallback
+       ======================================================== */
+    @media (max-width: 960px) {
+      html, body { height: auto; overflow: auto; }
+      body { grid-template-rows: 56px auto auto; }
+      .canvas {
+        min-height: auto;
+        padding: 32px 24px 40px;
+      }
+      .canvas::before { display: none; }
+      .wireframe {
+        position: relative;
+        left: auto; top: auto;
+        transform: none;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto 32px;
+      }
+      .marker { display: none; }
+      #connector { display: none; }
+      .popup {
+        position: relative;
+        left: auto !important;
+        top: auto !important;
+        width: 100% !important;
+        max-width: 520px;
+        margin: 0 auto 16px;
+      }
+      .foot {
+        padding: 16px 24px;
+        flex-direction: column;
+        gap: 12px;
+        height: auto;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav">
+    <a href="#" class="brand" aria-label="annotate-html">
+      <span class="brand-mark"></span>
+      annotate-html
+      <span class="pill"><span class="dot"></span>v1.0</span>
+    </a>
+    <nav class="nav-right">
+      <a href="../demo.html">Demo</a>
+      <a href="https://github.com/AsimSayed/annotate-html" target="_blank" rel="noopener" class="gh">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.69-.01-1.36-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.13 0 0 .67-.21 2.2.82a7.59 7.59 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.11.16 1.93.08 2.13.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49 0 1.07-.01 1.94-.01 2.21 0 .21.15.46.55.38A8 8 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <span class="meta">MIT</span>
+    </nav>
+  </header>
+
+  <!-- ============ CANVAS ============ -->
+  <main class="canvas" id="canvas">
+
+    <!-- SVG connector layer -->
+    <svg id="connector" aria-hidden="true">
+      <path id="line-1" d=""/>
+      <path id="line-2" d=""/>
+      <path id="line-3" d=""/>
+      <path id="line-4" d=""/>
+    </svg>
+
+    <!-- Abstract wireframe — "any HTML page" -->
+    <div class="wireframe" id="wireframe" aria-hidden="true">
+      <div class="wf-block image" id="wf-1"></div>
+      <div class="wf-lines" id="wf-2">
+        <div class="wf-line w-100"></div>
+        <div class="wf-line w-90"></div>
+        <div class="wf-line w-72"></div>
+        <div class="wf-line w-45"></div>
+      </div>
+      <div class="wf-codebox" id="wf-3"></div>
+      <div class="wf-buttons" id="wf-4">
+        <div class="wf-btn solid"></div>
+        <div class="wf-btn"></div>
+      </div>
+    </div>
+
+    <!-- Markers — planted on wireframe shapes via JS -->
+    <span class="marker" id="m-1">1</span>
+    <span class="marker" id="m-2">2</span>
+    <span class="marker" id="m-3">3</span>
+    <span class="marker" id="m-4">4</span>
+
+    <!-- Popup 1 — title -->
+    <article class="popup p-title" id="p-1">
+      <div class="pop-head">
+        <svg class="pop-chev" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5l3.5 3.5L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="pop-label">Annotation 1</span>
+        <span class="pop-spacer"></span>
+        <span class="pop-sel">h1.title</span>
+      </div>
+      <h1>
+        Click. Annotate.<br />
+        Paste into <em>Claude</em>.
+      </h1>
+    </article>
+
+    <!-- Popup 2 — lede -->
+    <article class="popup p-lede" id="p-2">
+      <div class="pop-head">
+        <svg class="pop-chev" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5l3.5 3.5L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="pop-label">Annotation 2</span>
+        <span class="pop-spacer"></span>
+        <span class="pop-sel">p.lede</span>
+      </div>
+      <p>
+        A visual feedback tool for AI coding agents. Drop one script tag into any HTML page — <strong>no React, no build, no npm</strong>. Click an element, type what you want changed, paste the structured markdown into Claude Code.
+      </p>
+    </article>
+
+    <!-- Popup 3 — install -->
+    <article class="popup p-install" id="p-3">
+      <div class="pop-head">
+        <svg class="pop-chev" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5l3.5 3.5L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="pop-label">Annotation 3</span>
+        <span class="pop-spacer"></span>
+        <span class="pop-sel">pre.install</span>
+      </div>
+      <div class="install-row">
+        <code><span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="str">"https://cdn.jsdelivr.net/gh/<span class="ell">…</span>/annotate.js"</span><span class="tag">&gt;&lt;/script&gt;</span></code>
+        <button class="copy-btn" id="copyBtn" aria-label="Copy install snippet">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 11V3.5A1.5 1.5 0 014.5 2H11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span id="copyLabel">Copy</span>
+          <span class="kbd">⌘C</span>
+        </button>
+      </div>
+    </article>
+
+    <!-- Popup 4 — CTAs -->
+    <article class="popup p-cta" id="p-4">
+      <div class="pop-head">
+        <svg class="pop-chev" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4 2.5l3.5 3.5L4 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="pop-label">Annotation 4</span>
+        <span class="pop-spacer"></span>
+        <span class="pop-sel">a.cta-row</span>
+      </div>
+      <div class="ctas">
+        <a href="../demo.html" class="btn btn-primary">
+          Try the live demo
+          <svg class="arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="https://github.com/AsimSayed/annotate-html" target="_blank" rel="noopener" class="btn">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.69-.01-1.36-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.13 0 0 .67-.21 2.2.82a7.59 7.59 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.11.16 1.93.08 2.13.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49 0 1.07-.01 1.94-.01 2.21 0 .21.15.46.55.38A8 8 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          Source
+        </a>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="foot">
+    <div class="workflow" aria-label="Workflow">
+      <span><strong>1</strong> drop</span>
+      <span><strong>2</strong> Alt+A</span>
+      <span><strong>3</strong> click</span>
+      <span><strong>4</strong> paste</span>
+    </div>
+    <div class="levels" aria-label="Output detail levels">
+      <span>compact</span>
+      <span class="active">standard</span>
+      <span>detailed</span>
+      <span>forensic</span>
+    </div>
+    <div class="creds">
+      <span>Adapted from <a href="https://github.com/benjitaylor/agentation" target="_blank" rel="noopener">Agentation</a></span>
+      <span class="sep">·</span>
+      <span>Built by <a href="https://asimsayed.com" target="_blank" rel="noopener">Asim Sayed</a></span>
+    </div>
+  </footer>
+
+  <!-- ============ Live annotate.js — corner toolbar is real ============ -->
+  <script src="../annotate.js"></script>
+
+  <!-- ============ Page choreography ============ -->
+  <script>
+    // Each entry: marker → wireframe element it sits on → popup → connector path
+    var PAIRS = [
+      { mk: 'm-1', wf: 'wf-1', pop: 'p-1', ln: 'line-1', mkAnchor: 'left' },
+      { mk: 'm-2', wf: 'wf-2', pop: 'p-2', ln: 'line-2', mkAnchor: 'left' },
+      { mk: 'm-3', wf: 'wf-3', pop: 'p-3', ln: 'line-3', mkAnchor: 'left' },
+      { mk: 'm-4', wf: 'wf-4', pop: 'p-4', ln: 'line-4', mkAnchor: 'left' }
+    ];
+
+    function placeMarkers() {
+      var canvas = document.getElementById('canvas');
+      var cr = canvas.getBoundingClientRect();
+      PAIRS.forEach(function (p) {
+        var m = document.getElementById(p.mk);
+        var w = document.getElementById(p.wf);
+        if (!m || !w) return;
+        var wr = w.getBoundingClientRect();
+        // Plant marker at the top-right corner of the wireframe element,
+        // straddling the edge so it reads as "clipped to" that element.
+        var x = wr.right - cr.left - 12; // marker is 24px wide → -12 centers on edge
+        var y = wr.top + (wr.height / 2) - cr.top - 12;
+        m.style.left = x + 'px';
+        m.style.top  = y + 'px';
+      });
+    }
+
+    function drawConnectors() {
+      var svg = document.getElementById('connector');
+      if (!svg) return;
+      var canvas = svg.parentElement;
+      var cr = canvas.getBoundingClientRect();
+      svg.setAttribute('width', cr.width);
+      svg.setAttribute('height', cr.height);
+      svg.setAttribute('viewBox', '0 0 ' + cr.width + ' ' + cr.height);
+
+      PAIRS.forEach(function (p) {
+        var m = document.getElementById(p.mk);
+        var pop = document.getElementById(p.pop);
+        var ln = document.getElementById(p.ln);
+        if (!m || !pop || !ln) return;
+
+        var mr = m.getBoundingClientRect();
+        var pr = pop.getBoundingClientRect();
+
+        // start: marker right edge, midY
+        var x1 = mr.right - cr.left + 2;
+        var y1 = (mr.top + mr.bottom) / 2 - cr.top;
+        // end: popup left edge, midY
+        var x2 = pr.left - cr.left - 2;
+        var y2 = (pr.top + pr.bottom) / 2 - cr.top;
+
+        var dx = x2 - x1;
+        var cx1 = x1 + dx * 0.5;
+        var cx2 = x2 - dx * 0.5;
+        var d = 'M ' + x1 + ',' + y1 +
+                ' C ' + cx1 + ',' + y1 +
+                ' '   + cx2 + ',' + y2 +
+                ' '   + x2  + ',' + y2;
+        ln.setAttribute('d', d);
+      });
+    }
+
+    function relayout() {
+      placeMarkers();
+      drawConnectors();
+    }
+
+    function reveal() {
+      relayout();
+
+      // Phase 1: wireframe + dot grid
+      setTimeout(function () {
+        var w = document.getElementById('wireframe');
+        if (w) w.classList.add('is-on');
+      }, 120);
+
+      // Phase 2: markers + connectors + popups, staggered
+      PAIRS.forEach(function (p, i) {
+        setTimeout(function () {
+          var m = document.getElementById(p.mk);
+          var pop = document.getElementById(p.pop);
+          var l = document.getElementById(p.ln);
+          if (m) m.classList.add('is-on');
+          if (l) l.classList.add('is-on');
+          if (pop) pop.classList.add('is-on');
+        }, 380 + i * 150);
+      });
+    }
+
+    // Wait for fonts so layout measurements are accurate
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(reveal);
+    } else {
+      window.addEventListener('load', reveal);
+    }
+
+    // Debounced resize → recompute marker + connector positions
+    var rT;
+    window.addEventListener('resize', function () {
+      cancelAnimationFrame(rT);
+      rT = requestAnimationFrame(function () {
+        setTimeout(relayout, 40);
+      });
+    });
+
+    // Install copy button → full snippet to clipboard
+    var copyBtn = document.getElementById('copyBtn');
+    var copyLabel = document.getElementById('copyLabel');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var snippet = '<script src="https://cdn.jsdelivr.net/gh/AsimSayed/annotate-html@main/annotate.js"></' + 'script>';
+        var done = function () {
+          copyLabel.textContent = 'Copied';
+          copyBtn.classList.add('copied');
+          setTimeout(function () {
+            copyLabel.textContent = 'Copy';
+            copyBtn.classList.remove('copied');
+          }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(snippet).then(done, function () { copyLabel.textContent = '⌘C'; });
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = snippet; document.body.appendChild(ta);
+          ta.select(); try { document.execCommand('copy'); done(); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

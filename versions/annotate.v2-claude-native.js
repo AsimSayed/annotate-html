@@ -12,34 +12,15 @@
   if (typeof window === "undefined") return;
 
   // ═══════════════════════════════════════════
-  // Double-injection guard
-  // ═══════════════════════════════════════════
-  // If annotate.js has already booted on this page (e.g. Chrome extension
-  // clicked twice, or script tag + extension), do NOT build a second toolbar.
-  // Instead, ask the existing instance to toggle its visibility and bail.
-  if (window.__annotateHtml && typeof window.__annotateHtml.toggle === "function") {
-    try { window.__annotateHtml.toggle(); } catch (e) {}
-    return;
-  }
-
-  // ═══════════════════════════════════════════
   // State
   // ═══════════════════════════════════════════
   const state = {
     active: false,
     annotations: [],
     hoveredEl: null,
-    detailLevel: "detailed",
+    detailLevel: "standard", // compact | standard | detailed | forensic
     counter: 0,
-    markersHidden: false,
-    toolbarHidden: false,
-    markerColor: "#C96442",
   };
-
-  var MARKER_COLORS = [
-    "#C96442", "#EF4444", "#F59E0B",
-    "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6",
-  ];
 
   // ═══════════════════════════════════════════
   // Element Identification (ported from agentation)
@@ -296,133 +277,42 @@
       '-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11";',
       'font-size:13px;display:flex;align-items:center;gap:4px;',
       'background:#FAF9F5;color:#1F1E1D;padding:6px;border-radius:14px;',
-      'height:44px;max-width:600px;overflow:hidden;',
       'border:1px solid rgba(31,30,29,.08);',
       'box-shadow:0 1px 2px rgba(31,30,29,.04),0 8px 24px rgba(31,30,29,.10);',
-      'transition:max-width .36s cubic-bezier(.65,0,.35,1),',
-      'padding .36s cubic-bezier(.65,0,.35,1),',
-      'border-radius .36s cubic-bezier(.65,0,.35,1),',
-      'box-shadow .25s ease;',
+      'transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .25s ease;',
       'user-select:none}',
 
-      // Collapsed (round button) state — same element morphs
-      '#ann-toolbar.collapsed{max-width:44px;padding:0;border-radius:50%;',
-      'overflow:visible;justify-content:center;cursor:pointer;',
-      'box-shadow:0 1px 2px rgba(31,30,29,.04),0 6px 18px rgba(31,30,29,.10)}',
-      '@media (hover:hover){#ann-toolbar.collapsed:hover{',
-      'box-shadow:0 2px 4px rgba(31,30,29,.06),0 10px 28px rgba(31,30,29,.14)}}',
-
-      // Children fade — fast out on collapse, delayed in on expand
-      '#ann-toolbar > *:not(.ann-collapsed-view){',
-      'opacity:1;transition:opacity .15s ease .22s}',
-      '#ann-toolbar.collapsed > *:not(.ann-collapsed-view){',
-      'opacity:0;pointer-events:none;transition:opacity .12s ease 0s}',
-
-      // The collapsed face — pencil icon + badge, sits absolute over the row
-      '.ann-collapsed-view{position:absolute;inset:0;display:flex;align-items:center;',
-      'justify-content:center;color:#C96442;pointer-events:none;opacity:0;',
-      'transition:opacity .14s ease 0s}',
-      '#ann-toolbar.collapsed .ann-collapsed-view{opacity:1;pointer-events:auto;',
-      'transition:opacity .14s ease .22s}',
-      '.ann-collapsed-view svg{width:18px;height:18px;display:block}',
-      '.ann-collapsed-view .ann-collapsed-badge{position:absolute;top:-4px;right:-4px;',
-      'background:#C96442;color:#FAF9F5;border:1.5px solid #FAF9F5;',
-      'border-radius:100px;min-width:17px;height:17px;padding:0 4px;',
-      'font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;',
-      'display:flex;align-items:center;justify-content:center;line-height:1;',
-      'pointer-events:none;transform-origin:center;',
-      'transition:transform .2s cubic-bezier(.2,.8,.2,1)}',
-      '.ann-collapsed-view .ann-collapsed-badge.empty{display:none}',
-      '.ann-collapsed-view .ann-collapsed-badge.bump{animation:ann-badge-pop .35s cubic-bezier(.2,.8,.2,1)}',
-
+      '#ann-toolbar.hidden{transform:translateY(20px) scale(.95);opacity:0;pointer-events:none}',
 
       '#ann-toolbar button{background:none;border:none;color:#1F1E1D;cursor:pointer;',
       'padding:7px 10px;border-radius:9px;font-size:13px;font-weight:500;font-family:inherit;',
       'transition:background .15s ease,color .15s ease,transform .1s ease;',
       'display:inline-flex;align-items:center;gap:6px;white-space:nowrap;line-height:1}',
-      '#ann-toolbar button svg{width:18px;height:18px;flex-shrink:0;display:block}',
+      '#ann-toolbar button svg{width:15px;height:15px;flex-shrink:0;display:block}',
       '@media (hover:hover){#ann-toolbar button:hover{background:#F0EEE6;color:#1F1E1D}}',
       '#ann-toolbar button:active{transform:scale(.97)}',
       '#ann-toolbar button.active{background:rgba(201,100,66,.10);color:#C96442}',
       '#ann-toolbar button.icon-only{padding:7px}',
 
-      // Eye-toggle button with corner badge
-      '#ann-toolbar .ann-eye-btn{position:relative}',
-      '#ann-toolbar .ann-eye-badge{position:absolute;top:-3px;right:-3px;',
-      'background:#C96442;color:#FAF9F5;border:1.5px solid #FAF9F5;',
-      'border-radius:100px;min-width:17px;height:17px;padding:0 4px;',
-      'font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;',
-      'display:flex;align-items:center;justify-content:center;line-height:1;',
-      'pointer-events:none;transform-origin:center;',
-      'transition:transform .2s cubic-bezier(.2,.8,.2,1)}',
-      '#ann-toolbar .ann-eye-badge.empty{display:none}',
-      '#ann-toolbar .ann-eye-btn.hidden-state{color:#75726B}',
-      // pop on increment
-      '@keyframes ann-badge-pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}',
-      '#ann-toolbar .ann-eye-badge.bump{animation:ann-badge-pop .35s cubic-bezier(.2,.8,.2,1)}',
-
-      // Copy success state
-      '#ann-toolbar button.success{background:rgba(34,165,90,.10)}',
-      '#ann-toolbar button.success svg{color:inherit}',
-
-      // Color swatch (toolbar circle)
-      '#ann-toolbar .ann-color-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;',
-      'border:2px solid rgba(31,30,29,.10);flex-shrink:0;',
-      'transition:transform .15s ease,border-color .15s ease}',
-      '@media (hover:hover){#ann-toolbar .ann-color-swatch:hover{transform:scale(1.1);',
-      'border-color:rgba(31,30,29,.25)}}',
-      '#ann-toolbar .ann-color-swatch:active{transform:scale(.95)}',
-
-      // Color picker popover
-      '#ann-color-picker{position:fixed;z-index:99998;',
-      'background:#FAF9F5;border:1px solid rgba(31,30,29,.08);',
-      'border-radius:12px;padding:10px 14px;',
-      'box-shadow:0 1px 2px rgba(31,30,29,.04),0 12px 32px rgba(31,30,29,.14);',
-      'display:flex;gap:8px;align-items:center;',
-      'animation:ann-popup-in .2s cubic-bezier(.2,.8,.2,1) both}',
-      '.ann-color-opt{width:28px;height:28px;border-radius:50%;cursor:pointer;',
-      'flex-shrink:0;border:none;padding:0;',
-      'transition:transform .12s ease}',
-      '@media (hover:hover){.ann-color-opt:hover{transform:scale(1.15)}}',
-      '.ann-color-opt:active{transform:scale(.92)}',
-      '.ann-color-opt.active{box-shadow:0 0 0 2px #FAF9F5,0 0 0 3.5px #1F1E1D}',
-
-      // Custom toolbar tooltip (pops above)
-      '#ann-tip{position:fixed;z-index:100000;',
-      'background:#FAF9F5;border:1px solid rgba(31,30,29,.08);',
-      'border-radius:8px;padding:5px 10px;',
-      'box-shadow:0 2px 12px rgba(31,30,29,.12);',
-      'font-family:ui-sans-serif,-apple-system,system-ui,sans-serif;',
-      '-webkit-font-smoothing:antialiased;',
-      'font-size:12px;font-weight:500;color:#1F1E1D;',
-      'white-space:nowrap;pointer-events:none;',
-      'opacity:0;transform:translateX(-50%) translateY(4px);',
-      'transition:opacity .1s ease,transform .1s ease}',
-      '#ann-tip.show{opacity:1;transform:translateX(-50%) translateY(0)}',
-      '#ann-tip .ann-tip-key{color:#9A968E;margin-left:6px;font-size:11px;font-weight:400}',
-      "#ann-tip::after{content:'';position:absolute;bottom:-5px;left:50%;",
-      'transform:translateX(-50%);',
-      'border-left:5px solid transparent;border-right:5px solid transparent;',
-      'border-top:5px solid #FAF9F5}',
+      '#ann-toolbar .ann-badge{background:#C96442;color:#FAF9F5;',
+      'border-radius:100px;padding:2px 8px;font-size:11px;font-weight:600;',
+      'min-width:20px;text-align:center;font-variant-numeric:tabular-nums;',
+      'transition:background .15s ease}',
+      '#ann-toolbar .ann-badge.empty{background:#E8E5DA;color:#75726B}',
 
       '#ann-toolbar .ann-divider{width:1px;height:18px;background:rgba(31,30,29,.10);margin:0 2px}',
 
-      '#ann-toolbar select{appearance:none;-webkit-appearance:none;-moz-appearance:none;',
-      'background-color:#F5F4ED;',
-      'background-image:url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2375726B\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'m6 9 6 6 6-6\'/></svg>");',
-      'background-repeat:no-repeat;background-position:right 9px center;',
-      'border:1px solid rgba(31,30,29,.08);',
-      'color:#1F1E1D;border-radius:8px;padding:5px 26px 5px 10px;',
-      'font-size:12px;font-weight:500;line-height:1.4;',
+      '#ann-toolbar select{background:#F5F4ED;border:1px solid rgba(31,30,29,.08);',
+      'color:#1F1E1D;border-radius:8px;padding:5px 8px;font-size:12px;font-weight:500;',
       'font-family:inherit;cursor:pointer;transition:border-color .15s ease}',
       '#ann-toolbar select:hover{border-color:rgba(31,30,29,.18)}',
       '#ann-toolbar select:focus{outline:none;border-color:#C96442}',
-      '#ann-toolbar select::-ms-expand{display:none}',
 
       // Hover highlight
       '#ann-hover-highlight{position:fixed;z-index:99990;pointer-events:none;',
-      'border:1.5px solid #C96442;border-radius:4px;',
-      'background:rgba(201,100,66,.04);',
+      'border:1.5px solid #C96442;border-radius:8px;',
+      'background:rgba(201,100,66,.06);',
+      'box-shadow:0 0 0 4px rgba(201,100,66,.10);',
       'transition:all .12s cubic-bezier(.2,.8,.2,1)}',
 
       // Hover label
@@ -432,30 +322,19 @@
       'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;',
       'white-space:nowrap;box-shadow:0 4px 16px rgba(31,30,29,.18)}',
 
-      // Markers — outer wrapper handles position + entry pop only (no visual)
+      // Markers
       '.ann-marker{position:absolute;z-index:99992;width:24px;height:24px;',
-      'cursor:pointer;overflow:visible;',
-      'transform:translate(-50%,-100%);',
-      'animation:ann-pop .3s cubic-bezier(.2,.8,.2,1) backwards}',
-      // Inner circle — the actual visible pin, scales on hover
-      '.ann-marker-circle{cursor:pointer;width:24px;height:24px;border-radius:50%;',
-      'background:#C96442;color:#FAF9F5;',
+      'border-radius:50%;background:#C96442;color:#FAF9F5;',
       'font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;',
       'display:flex;align-items:center;justify-content:center;',
-      'border:2px solid #FAF9F5;box-sizing:border-box;',
+      'cursor:pointer;border:2px solid #FAF9F5;',
       'box-shadow:0 1px 2px rgba(31,30,29,.10),0 4px 12px rgba(201,100,66,.30);',
-      'font-family:ui-sans-serif,-apple-system,system-ui,sans-serif;',
-      'transform-origin:center;',
-      'transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease}',
-      '.ann-marker .ann-marker-num,.ann-marker .ann-marker-edit{',
-      'display:flex;align-items:center;justify-content:center;line-height:1}',
-      '.ann-marker .ann-marker-edit{display:none}',
-      '.ann-marker .ann-marker-edit svg{width:13px;height:13px;display:block}',
-      '@media (hover:hover){.ann-marker:hover .ann-marker-circle{',
-      'transform:scale(1.3);',
-      'box-shadow:0 2px 4px rgba(31,30,29,.12),0 8px 22px rgba(201,100,66,.42)}',
-      '.ann-marker:hover .ann-marker-num{display:none}',
-      '.ann-marker:hover .ann-marker-edit{display:flex}}',
+      'font-family:ui-sans-serif,-apple-system,system-ui,sans-serif;overflow:visible;',
+      'transform:translate(-50%,-100%);',
+      'transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease;',
+      'animation:ann-pop .3s cubic-bezier(.2,.8,.2,1) both}',
+      '@media (hover:hover){.ann-marker:hover{transform:translate(-50%,-100%) scale(1.12);',
+      'box-shadow:0 2px 4px rgba(31,30,29,.12),0 6px 18px rgba(201,100,66,.42)}}',
       '@keyframes ann-pop{from{transform:translate(-50%,-100%) scale(.8);opacity:0}',
       'to{transform:translate(-50%,-100%) scale(1);opacity:1}}',
 
@@ -484,24 +363,9 @@
       '@keyframes ann-popup-in{from{transform:translateY(4px) scale(.98);opacity:0}',
       'to{transform:translateY(0) scale(1);opacity:1}}',
 
-      // Header (chevron + label) — click to expand path
-      '#ann-popup .ann-popup-header{display:flex;align-items:center;gap:6px;',
-      'margin-bottom:10px;cursor:pointer;user-select:none;',
-      'padding:2px 4px 2px 2px;margin-left:-4px;border-radius:6px;',
-      'transition:background .15s ease}',
-      '@media (hover:hover){#ann-popup .ann-popup-header:hover{background:#F0EEE6}}',
-      '#ann-popup .ann-popup-chevron{width:12px;height:12px;color:#75726B;flex-shrink:0;',
-      'transition:transform .2s cubic-bezier(.2,.8,.2,1)}',
-      '#ann-popup .ann-popup-header.expanded .ann-popup-chevron{transform:rotate(90deg)}',
       '#ann-popup .ann-popup-label{color:#C96442;font-size:11px;font-weight:600;',
       'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;',
-      'display:block;letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;',
-      'white-space:nowrap;flex:1;min-width:0}',
-      '#ann-popup .ann-popup-path{display:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;',
-      'font-size:10px;color:#75726B;background:#F5F4ED;border:1px solid rgba(31,30,29,.06);',
-      'border-radius:7px;padding:6px 9px;margin-bottom:10px;',
-      'word-break:break-all;line-height:1.5}',
-      '#ann-popup .ann-popup-header.expanded + .ann-popup-path{display:block}',
+      'margin-bottom:10px;display:block;letter-spacing:.01em}',
 
       '#ann-popup textarea{width:100%;background:#F5F4ED;border:1px solid rgba(31,30,29,.08);',
       'color:#1F1E1D;border-radius:9px;padding:10px 12px;font-size:13px;',
@@ -511,38 +375,22 @@
       '#ann-popup textarea::placeholder{color:#A8A49B}',
       '#ann-popup textarea:focus{border-color:#C96442;background:#FAF9F5}',
 
-      '#ann-popup .ann-popup-actions{display:flex;gap:6px;margin-top:10px;align-items:center}',
-      '#ann-popup .ann-popup-actions .ann-spacer{flex:1}',
+      '#ann-popup .ann-popup-actions{display:flex;gap:6px;margin-top:10px;justify-content:flex-end}',
 
       '#ann-popup .ann-popup-actions button{background:transparent;',
       'border:1px solid rgba(31,30,29,.10);',
       'color:#1F1E1D;border-radius:9px;padding:7px 14px;font-size:12px;font-weight:500;',
       'cursor:pointer;font-family:inherit;',
-      'transition:background .15s,border-color .15s,transform .1s,color .15s}',
+      'transition:background .15s,border-color .15s,transform .1s}',
       '@media (hover:hover){#ann-popup .ann-popup-actions button:hover{background:#F0EEE6}}',
       '#ann-popup .ann-popup-actions button:active{transform:scale(.97)}',
       '#ann-popup .ann-popup-actions button.primary{background:#C96442;',
       'color:#FAF9F5;border-color:#C96442}',
       '@media (hover:hover){#ann-popup .ann-popup-actions button.primary:hover{background:#B5573A;border-color:#B5573A}}',
-      '#ann-popup .ann-popup-actions button.icon-only{padding:7px;border-color:transparent;color:#75726B}',
-      '#ann-popup .ann-popup-actions button.icon-only svg{width:15px;height:15px;display:block}',
-      '@media (hover:hover){#ann-popup .ann-popup-actions button.icon-only:hover{',
-      'background:rgba(201,100,66,.10);color:#C96442}}',
 
       // Active cursor
       'body.ann-active{cursor:crosshair !important}',
       'body.ann-active *{cursor:crosshair !important}',
-      // Override crosshair on the tool's own UI
-      'body.ann-active #ann-toolbar,body.ann-active #ann-toolbar *,',
-      'body.ann-active #ann-color-picker,body.ann-active #ann-color-picker *,',
-      'body.ann-active #ann-popup,body.ann-active #ann-popup *,',
-      'body.ann-active .ann-marker,body.ann-active .ann-marker *{cursor:auto !important}',
-      'body.ann-active #ann-toolbar button,body.ann-active #ann-toolbar .ann-color-swatch,',
-      'body.ann-active #ann-color-picker .ann-color-opt,',
-      'body.ann-active #ann-toolbar.collapsed,body.ann-active .ann-collapsed-view,',
-      'body.ann-active #ann-popup button,body.ann-active #ann-popup .ann-popup-header,',
-      'body.ann-active .ann-marker{cursor:pointer !important}',
-      'body.ann-active #ann-popup textarea{cursor:text !important}',
 
       // Copied toast
       '#ann-toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-12px);',
@@ -592,15 +440,10 @@
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 
   var ICONS = {
-    // square-pen (toolbar Annotate button + collapsed face)
+    // square-pen
     pencil: '<svg ' + ICON_ATTRS + '>' +
       '<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
       '<path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>' +
-      '</svg>',
-    // plain pencil (marker hover edit)
-    pencilPlain: '<svg ' + ICON_ATTRS + '>' +
-      '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>' +
-      '<path d="m15 5 4 4"/>' +
       '</svg>',
     // copy
     copy: '<svg ' + ICON_ATTRS + '>' +
@@ -623,27 +466,6 @@
     check: '<svg ' + ICON_ATTRS + '>' +
       '<path d="M20 6 9 17l-5-5"/>' +
       '</svg>',
-    // eye
-    eye: '<svg ' + ICON_ATTRS + '>' +
-      '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>' +
-      '<circle cx="12" cy="12" r="3"/>' +
-      '</svg>',
-    // eye-off
-    eyeOff: '<svg ' + ICON_ATTRS + '>' +
-      '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/>' +
-      '<path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/>' +
-      '<path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/>' +
-      '<path d="m2 2 20 20"/>' +
-      '</svg>',
-    // chevron-right
-    chevronRight: '<svg ' + ICON_ATTRS + '>' +
-      '<path d="m9 18 6-6-6-6"/>' +
-      '</svg>',
-    // check-circle filled (for copy success)
-    checkCircleFilled: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
-      '<circle cx="12" cy="12" r="10" fill="#22A55A"/>' +
-      '<path d="m8.5 12.5 2.5 2.5 4.5-5" fill="none" stroke="#FAF9F5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '</svg>',
   };
 
   function iconEl(name) {
@@ -658,72 +480,6 @@
 
   var toolbar, hoverHighlight, hoverLabel, popup, toast;
   var markersContainer;
-  var eyeBtn, eyeIconWrap, eyeBadge, copyBtn;
-  var collapsedView, collapsedBadge;
-  var colorSwatch, colorPicker;
-  var accentSheet;
-  var tipEl;
-
-  function darkenHex(hex, amt) {
-    var r = Math.max(0, parseInt(hex.slice(1, 3), 16) - amt);
-    var g = Math.max(0, parseInt(hex.slice(3, 5), 16) - amt);
-    var b = Math.max(0, parseInt(hex.slice(5, 7), 16) - amt);
-    return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
-  }
-
-  function updateAccentColor(hex) {
-    state.markerColor = hex;
-    if (colorSwatch) colorSwatch.style.background = hex;
-
-    if (!accentSheet) {
-      accentSheet = document.createElement("style");
-      accentSheet.id = "ann-accent-styles";
-      document.head.appendChild(accentSheet);
-    }
-
-    var bg10 = hex + "1A";   // 10%
-    var bg42 = hex + "6B";   // 42%
-    var dark = darkenHex(hex, 20);
-
-    accentSheet.textContent = [
-      "#ann-toolbar button.active{background:" + bg10 + ";color:" + hex + "}",
-      "#ann-toolbar .ann-eye-badge{background:" + hex + "}",
-      ".ann-collapsed-view{color:" + hex + "}",
-      ".ann-collapsed-view .ann-collapsed-badge{background:" + hex + "}",
-      ".ann-marker-tip strong{color:" + hex + "}",
-      "#ann-popup .ann-popup-label{color:" + hex + "}",
-      "#ann-popup .ann-popup-header.expanded .ann-popup-chevron{color:" + hex + "}",
-      "#ann-popup textarea:focus{border-color:" + hex + "}",
-      "#ann-popup .ann-popup-actions button.primary{background:" + hex + ";border-color:" + hex + "}",
-      "#ann-toast svg{color:" + hex + "}",
-      "@media (hover:hover){",
-      "#ann-popup .ann-popup-actions button.primary:hover{background:" + dark + ";border-color:" + dark + "}",
-      "#ann-popup .ann-popup-actions button.icon-only:hover{background:" + bg10 + ";color:" + hex + "}",
-      ".ann-marker:hover .ann-marker-circle{box-shadow:0 2px 4px rgba(31,30,29,.12),0 8px 22px " + bg42 + "}}",
-    ].join("\n");
-
-    renderMarkers();
-  }
-
-  function addTip(target, text, key) {
-    target.addEventListener("mouseenter", function () {
-      if (!tipEl) return;
-      tipEl.innerHTML = escHtml(text) + (key ? '<span class="ann-tip-key">' + escHtml(key) + '</span>' : "");
-      var r = target.getBoundingClientRect();
-      tipEl.style.left = (r.left + r.width / 2) + "px";
-      tipEl.style.top = (r.top - 8) + "px";
-      tipEl.style.bottom = "auto";
-      // Anchor bottom of tooltip to that top value
-      requestAnimationFrame(function () {
-        var th = tipEl.offsetHeight;
-        tipEl.style.top = (r.top - 8 - th) + "px";
-        tipEl.classList.add("show");
-      });
-    });
-    target.addEventListener("mouseleave", function () {
-      if (tipEl) tipEl.classList.remove("show");
-    });
-  }
 
   function createToolbar() {
     injectStyles();
@@ -752,107 +508,59 @@
     toolbar = el("div", { id: "ann-toolbar" });
 
     var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-    var altKey = isMac ? "\u2325" : "Alt";
-
-    // Shared tooltip element
-    tipEl = el("div", { id: "ann-tip" });
-    document.body.appendChild(tipEl);
 
     // Toggle annotate mode
     var toggleBtn = el("button", {
-      onClick: toggleActive
+      onClick: toggleActive,
+      title: "Toggle annotation mode (" + (isMac ? "\u2325" : "Alt") + "+A)"
     });
     toggleBtn.id = "ann-toggle-btn";
     toggleBtn.appendChild(iconEl("pencil"));
     toggleBtn.appendChild(document.createTextNode("Annotate"));
 
-    // Color swatch
-    colorSwatch = el("div", {
-      className: "ann-color-swatch",
-      role: "button",
-      tabindex: "0",
-      "aria-label": "Change marker color"
-    });
-    colorSwatch.style.background = state.markerColor;
-    colorSwatch.addEventListener("click", function (e) { e.stopPropagation(); showColorPicker(); });
-    colorSwatch.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showColorPicker(); }
-    });
+    // Count badge
+    var badge = el("span", { className: "ann-badge empty", id: "ann-count" }, "0");
 
     var divider1 = el("span", { className: "ann-divider" });
 
-    // Eye toggle (markers visibility) with corner count badge
-    eyeBtn = el("button", {
-      className: "icon-only ann-eye-btn",
-      onClick: toggleMarkersVisibility,
-      "aria-label": "Show or hide markers"
+    // Detail level select
+    var detailSelect = el("select", {
+      title: "Output detail level",
+      onChange: function (e) { state.detailLevel = e.target.value; }
     });
-    eyeIconWrap = el("span", { className: "ann-eye-icon" });
-    eyeIconWrap.appendChild(iconEl("eye"));
-    eyeBadge = el("span", { className: "ann-eye-badge empty" }, "0");
-    eyeBtn.appendChild(eyeIconWrap);
-    eyeBtn.appendChild(eyeBadge);
+    ["compact", "standard", "detailed", "forensic"].forEach(function (v) {
+      var opt = el("option", { value: v }, v.charAt(0).toUpperCase() + v.slice(1));
+      if (v === state.detailLevel) opt.selected = true;
+      detailSelect.appendChild(opt);
+    });
+
+    var divider2 = el("span", { className: "ann-divider" });
 
     // Copy
-    copyBtn = el("button", {
+    var copyBtn = el("button", {
       className: "icon-only",
       onClick: copyOutput,
-      "aria-label": "Copy feedback"
+      title: "Copy annotations as markdown",
+      "aria-label": "Copy annotations"
     });
     copyBtn.appendChild(iconEl("copy"));
 
-    // Clear all
+    // Clear
     var clearBtn = el("button", {
       className: "icon-only",
       onClick: clearAll,
-      "aria-label": "Clear all"
+      title: "Clear all annotations",
+      "aria-label": "Clear all annotations"
     });
     clearBtn.appendChild(iconEl("trash"));
 
-    var divider3 = el("span", { className: "ann-divider" });
-
-    // Close (collapse toolbar)
-    var closeBtn = el("button", {
-      className: "icon-only",
-      onClick: hideToolbar,
-      "aria-label": "Close"
-    });
-    closeBtn.appendChild(iconEl("x"));
-
-    var toggleKey = (isMac ? "\u2325" : "Alt") + "+A";
-    var extKey = isMac ? "\u2325\u21E7A" : "Alt+Shift+A";
-    addTip(toggleBtn, "Toggle mode", toggleKey);
-    addTip(colorSwatch, "Marker color", "M");
-    addTip(eyeBtn, "Show/hide markers", "H");
-    addTip(copyBtn, "Copy markdown", "C");
-    addTip(clearBtn, "Clear all");
-    addTip(closeBtn, "Close", extKey);
-
     toolbar.appendChild(toggleBtn);
-    toolbar.appendChild(colorSwatch);
+    toolbar.appendChild(badge);
     toolbar.appendChild(divider1);
-    toolbar.appendChild(eyeBtn);
+    toolbar.appendChild(detailSelect);
+    toolbar.appendChild(divider2);
     toolbar.appendChild(copyBtn);
     toolbar.appendChild(clearBtn);
-    toolbar.appendChild(divider3);
-    toolbar.appendChild(closeBtn);
-
-    // Collapsed face — overlay sibling that's revealed when toolbar morphs to round
-    collapsedView = el("div", {
-      className: "ann-collapsed-view",
-      role: "button",
-      tabindex: "0",
-      title: "Open annotate-html (" + altKey + "+A)",
-      "aria-label": "Open annotate toolbar"
-    });
-    collapsedView.appendChild(iconEl("pencil"));
-    collapsedBadge = el("span", { className: "ann-collapsed-badge empty" }, "0");
-    collapsedView.appendChild(collapsedBadge);
-    collapsedView.addEventListener("click", showToolbar);
-    collapsedView.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showToolbar(); }
-    });
-    toolbar.appendChild(collapsedView);
 
     document.body.appendChild(toolbar);
   }
@@ -881,86 +589,25 @@
     state.hoveredEl = null;
   }
 
-  function hideToolbar() {
-    if (!toolbar) return;
-    if (state.active) toggleActive();
-    closePopup();
-    hideHover();
-    toolbar.classList.add("collapsed");
-    state.toolbarHidden = true;
-  }
-
-  function showToolbar() {
-    if (!toolbar) return;
-    toolbar.classList.remove("collapsed");
-    state.toolbarHidden = false;
-  }
-
-  function toggleMarkersVisibility() {
-    state.markersHidden = !state.markersHidden;
-    markersContainer.style.display = state.markersHidden ? "none" : "";
-    eyeIconWrap.innerHTML = "";
-    eyeIconWrap.appendChild(iconEl(state.markersHidden ? "eyeOff" : "eye"));
-    if (state.markersHidden) eyeBtn.classList.add("hidden-state");
-    else eyeBtn.classList.remove("hidden-state");
-  }
-
   function updateCount() {
-    if (!eyeBadge) return;
+    var badge = document.getElementById("ann-count");
+    if (!badge) return;
     var n = state.annotations.length;
-    var prev = parseInt(eyeBadge.textContent, 10) || 0;
-
-    eyeBadge.textContent = n;
-    if (n === 0) eyeBadge.classList.add("empty");
-    else eyeBadge.classList.remove("empty");
-
-    if (collapsedBadge) {
-      collapsedBadge.textContent = n;
-      if (n === 0) collapsedBadge.classList.add("empty");
-      else collapsedBadge.classList.remove("empty");
-    }
-
-    // Pop on increment
-    if (n > prev) {
-      eyeBadge.classList.remove("bump");
-      void eyeBadge.offsetWidth;
-      eyeBadge.classList.add("bump");
-      if (collapsedBadge) {
-        collapsedBadge.classList.remove("bump");
-        void collapsedBadge.offsetWidth;
-        collapsedBadge.classList.add("bump");
-      }
-    }
+    badge.textContent = n;
+    if (n === 0) badge.classList.add("empty");
+    else badge.classList.remove("empty");
   }
 
   function showToast(msg) {
-    // Replace text node (preserve the icon SVG child)
-    var tn = null;
-    for (var i = 0; i < toast.childNodes.length; i++) {
-      if (toast.childNodes[i].nodeType === 3) { tn = toast.childNodes[i]; break; }
-    }
-    if (tn) tn.nodeValue = msg || "Copied to clipboard";
-    else toast.appendChild(document.createTextNode(msg || "Copied to clipboard"));
+    toast.textContent = msg || "Copied to clipboard";
     toast.classList.add("show");
     setTimeout(function () { toast.classList.remove("show"); }, 1800);
-  }
-
-  function flashCopySuccess() {
-    if (!copyBtn) return;
-    copyBtn.innerHTML = ICONS.checkCircleFilled;
-    copyBtn.classList.add("success");
-    setTimeout(function () {
-      copyBtn.innerHTML = "";
-      copyBtn.appendChild(iconEl("copy"));
-      copyBtn.classList.remove("success");
-    }, 1500);
   }
 
   function copyOutput() {
     var md = generateOutput();
     if (!md) { showToast("No annotations"); return; }
     navigator.clipboard.writeText(md).then(function () {
-      flashCopySuccess();
       showToast("Copied " + state.annotations.length + " annotation(s)");
     });
   }
@@ -972,65 +619,12 @@
   }
 
   // ═══════════════════════════════════════════
-  // Color picker
-  // ═══════════════════════════════════════════
-
-  function closeColorPicker() {
-    if (colorPicker && colorPicker.parentNode) colorPicker.parentNode.removeChild(colorPicker);
-    colorPicker = null;
-  }
-
-  function showColorPicker() {
-    if (colorPicker) { closeColorPicker(); return; }
-    colorPicker = el("div", { id: "ann-color-picker" });
-
-    MARKER_COLORS.forEach(function (hex) {
-      var opt = el("div", { className: "ann-color-opt" + (hex === state.markerColor ? " active" : "") });
-      opt.style.background = hex;
-      opt.addEventListener("click", function (e) {
-        e.stopPropagation();
-        updateAccentColor(hex);
-        closeColorPicker();
-      });
-      colorPicker.appendChild(opt);
-    });
-
-    // Position above the swatch
-    var swRect = colorSwatch.getBoundingClientRect();
-    colorPicker.style.bottom = (window.innerHeight - swRect.top + 8) + "px";
-    colorPicker.style.right = (window.innerWidth - swRect.right) + "px";
-
-    document.body.appendChild(colorPicker);
-  }
-
-  // ═══════════════════════════════════════════
   // Popup (comment input)
   // ═══════════════════════════════════════════
 
   function closePopup() {
     if (popup && popup.parentNode) popup.parentNode.removeChild(popup);
     popup = null;
-    closeColorPicker();
-  }
-
-  function buildPopupHeader(elementName, elementPath) {
-    var header = el("div", { className: "ann-popup-header", role: "button", tabindex: "0",
-      title: "Show element path" });
-    var chev = el("span", { className: "ann-popup-chevron" });
-    chev.appendChild(iconEl("chevronRight"));
-    var label = el("span", { className: "ann-popup-label" }, elementName);
-    header.appendChild(chev);
-    header.appendChild(label);
-    var path = el("div", { className: "ann-popup-path" }, elementPath || "");
-    header.addEventListener("click", function () {
-      header.classList.toggle("expanded");
-    });
-    return { header: header, path: path };
-  }
-
-  function positionPopup(x, y) {
-    popup.style.left = Math.min(x + 12, window.innerWidth - 400) + "px";
-    popup.style.top = Math.min(y + 12, window.innerHeight - 220) + "px";
   }
 
   function showPopup(x, y, info, rect, selectedText) {
@@ -1040,115 +634,55 @@
 
     popup = el("div", { id: "ann-popup" });
 
-    var hp = buildPopupHeader(info.name, info.path);
+    var label = el("span", { className: "ann-popup-label" }, info.name);
     var textarea = el("textarea", { placeholder: "What should change?", rows: "3" });
-
-    var cancelBtn = el("button", { onClick: function () { closePopup(); } }, "Cancel");
-    var addBtn = el("button", { className: "primary", onClick: function () {
-      var comment = textarea.value.trim();
-      if (!comment) { closePopup(); return; }
-
-      var annotation = {
-        id: "ann-" + (++state.counter),
-        x: rect.x + rect.width / 2 + window.scrollX,
-        y: rect.y + window.scrollY,
-        comment: comment,
-        element: info.name,
-        elementPath: info.path,
-        timestamp: Date.now(),
-        selectedText: selectedText || undefined,
-        boundingBox: bb,
-        nearbyText: getNearbyText(info.target),
-        cssClasses: getClasses(info.target),
-        fullPath: getFullPath(info.target),
-        accessibility: getA11yInfo(info.target),
-        computedStyles: getComputedSnapshot(info.target),
-      };
-
-      state.annotations.push(annotation);
-      updateCount();
-      renderMarkers();
-      closePopup();
-    }}, "Add");
 
     var actions = el("div", { className: "ann-popup-actions" }, [
-      el("span", { className: "ann-spacer" }),
-      cancelBtn,
-      addBtn,
-    ]);
+      el("button", { onClick: function () { closePopup(); } }, "Cancel"),
+      el("button", { className: "primary", onClick: function () {
+        var comment = textarea.value.trim();
+        if (!comment) { closePopup(); return; }
 
-    popup.appendChild(hp.header);
-    popup.appendChild(hp.path);
-    popup.appendChild(textarea);
-    popup.appendChild(actions);
+        var annotation = {
+          id: "ann-" + (++state.counter),
+          x: rect.x + rect.width / 2 + window.scrollX,
+          y: rect.y + window.scrollY,
+          comment: comment,
+          element: info.name,
+          elementPath: info.path,
+          timestamp: Date.now(),
+          selectedText: selectedText || undefined,
+          boundingBox: bb,
+          nearbyText: getNearbyText(info.target),
+          cssClasses: getClasses(info.target),
+          fullPath: getFullPath(info.target),
+          accessibility: getA11yInfo(info.target),
+          computedStyles: getComputedSnapshot(info.target),
+        };
 
-    positionPopup(x, y);
-    document.body.appendChild(popup);
-    textarea.focus();
-
-    textarea.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) addBtn.click();
-      if (e.key === "Escape") closePopup();
-    });
-  }
-
-  function showEditPopup(x, y, index) {
-    closePopup();
-    var ann = state.annotations[index];
-    if (!ann) return;
-
-    popup = el("div", { id: "ann-popup" });
-
-    var hp = buildPopupHeader(ann.element, ann.elementPath);
-    var textarea = el("textarea", { placeholder: "What should change?", rows: "3" });
-    textarea.value = ann.comment;
-
-    var trashBtn = el("button", {
-      className: "icon-only",
-      title: "Delete annotation",
-      "aria-label": "Delete annotation",
-      onClick: function () {
-        state.annotations.splice(index, 1);
+        state.annotations.push(annotation);
         updateCount();
         renderMarkers();
         closePopup();
-      }
-    });
-    trashBtn.appendChild(iconEl("trash"));
-
-    var cancelBtn = el("button", { onClick: function () { closePopup(); } }, "Cancel");
-    var saveBtn = el("button", { className: "primary", onClick: function () {
-      var comment = textarea.value.trim();
-      if (!comment) {
-        // Empty save = delete
-        state.annotations.splice(index, 1);
-      } else {
-        ann.comment = comment;
-      }
-      updateCount();
-      renderMarkers();
-      closePopup();
-    }}, "Save");
-
-    var actions = el("div", { className: "ann-popup-actions" }, [
-      trashBtn,
-      el("span", { className: "ann-spacer" }),
-      cancelBtn,
-      saveBtn,
+      }}, "Add"),
     ]);
 
-    popup.appendChild(hp.header);
-    popup.appendChild(hp.path);
+    popup.appendChild(label);
     popup.appendChild(textarea);
     popup.appendChild(actions);
 
-    positionPopup(x, y);
+    // Position near click
+    popup.style.left = Math.min(x + 12, window.innerWidth - 380) + "px";
+    popup.style.top = Math.min(y + 12, window.innerHeight - 200) + "px";
+
     document.body.appendChild(popup);
     textarea.focus();
-    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
 
+    // Submit on Cmd/Ctrl+Enter
     textarea.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) saveBtn.click();
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        actions.querySelector(".primary").click();
+      }
       if (e.key === "Escape") closePopup();
     });
   }
@@ -1160,34 +694,23 @@
   function renderMarkers() {
     markersContainer.innerHTML = "";
     state.annotations.forEach(function (a, i) {
-      var marker = el("div", { className: "ann-marker", title: "Click to edit annotation" });
+      var marker = el("div", { className: "ann-marker" }, String(i + 1));
       marker.style.left = a.x + "px";
       marker.style.top = a.y + "px";
 
-      // Inner visible circle — this scales on hover, the wrapper does not
-      var circle = el("div", { className: "ann-marker-circle" });
-      circle.style.background = state.markerColor;
-      circle.style.boxShadow = "0 1px 2px rgba(31,30,29,.10),0 4px 12px " +
-        state.markerColor + "4D"; // 30% opacity hex suffix
-      var numEl = el("span", { className: "ann-marker-num" }, String(i + 1));
-      var editEl = el("span", { className: "ann-marker-edit" });
-      editEl.appendChild(iconEl("pencilPlain"));
-      circle.appendChild(numEl);
-      circle.appendChild(editEl);
-      marker.appendChild(circle);
-
-      // Tooltip — sibling of circle so it doesn't scale with it
+      // Tooltip on hover
       var tip = el("div", { className: "ann-marker-tip" });
       tip.innerHTML = "<strong>" + escHtml(a.element) + "</strong><br>" +
         escHtml(a.comment) +
         '<span class="ann-tip-path">' + escHtml(a.elementPath) + '</span>';
       marker.appendChild(tip);
 
-      // Click to edit
+      // Click to delete
       marker.addEventListener("click", function (e) {
         e.stopPropagation();
-        e.preventDefault();
-        showEditPopup(e.clientX, e.clientY, i);
+        state.annotations.splice(i, 1);
+        updateCount();
+        renderMarkers();
       });
 
       markersContainer.appendChild(marker);
@@ -1209,7 +732,6 @@
     var node = el;
     while (node) {
       if (node.id === "ann-toolbar" || node.id === "ann-popup" ||
-          node.id === "ann-color-picker" || node.id === "ann-tip" ||
           node.id === "ann-hover-highlight" || node.id === "ann-hover-label" ||
           (node.className && typeof node.className === "string" && node.className.indexOf("ann-marker") !== -1)) {
         return true;
@@ -1235,8 +757,6 @@
     hoverHighlight.style.top = rect.top + "px";
     hoverHighlight.style.width = rect.width + "px";
     hoverHighlight.style.height = rect.height + "px";
-    hoverHighlight.style.borderColor = state.markerColor;
-    hoverHighlight.style.background = state.markerColor + "0A";
 
     // Label
     var info = identifyElement(target);
@@ -1272,28 +792,13 @@
   }
 
   function handleKeydown(e) {
-    // Alt+A: bring back hidden toolbar OR toggle annotate mode
-    if (e.altKey && (e.code === "KeyA" || (e.key && e.key.toLowerCase() === "a"))) {
+    // Alt+A to toggle
+    if (e.altKey && (e.code === "KeyA" || e.key.toLowerCase() === "a")) {
       e.preventDefault();
-      if (state.toolbarHidden) {
-        showToolbar();
-        if (!state.active) toggleActive();
-      } else {
-        toggleActive();
-      }
-    }
-    // Single-key shortcuts (only when no popup/input is focused)
-    if (!e.metaKey && !e.ctrlKey && !e.altKey && !popup && !colorPicker &&
-        document.activeElement && document.activeElement.tagName !== "TEXTAREA" &&
-        document.activeElement.tagName !== "INPUT") {
-      var k = e.key.toLowerCase();
-      if (k === "c" && state.annotations.length > 0) { e.preventDefault(); copyOutput(); }
-      if (k === "m") { e.preventDefault(); showColorPicker(); }
-      if (k === "h") { e.preventDefault(); toggleMarkersVisibility(); }
+      toggleActive();
     }
     // Escape to deactivate or close popup
     if (e.key === "Escape") {
-      if (colorPicker) { closeColorPicker(); return; }
       if (popup) { closePopup(); return; }
       if (state.active) toggleActive();
     }
@@ -1311,18 +816,6 @@
     window.addEventListener("scroll", function () {
       if (state.active) hideHover();
     }, { passive: true });
-
-    // Publish a tiny control hook so re-injection (Chrome extension click,
-    // second <script> tag, etc.) toggles this instance instead of duplicating.
-    window.__annotateHtml = {
-      version: 1,
-      toggle: function () {
-        if (state.toolbarHidden) showToolbar();
-        else hideToolbar();
-      },
-      show: showToolbar,
-      hide: hideToolbar
-    };
   }
 
   // Boot when DOM ready

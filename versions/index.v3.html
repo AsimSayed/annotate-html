@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>annotate-html — visual feedback for AI coding agents</title>
+  <meta name="description" content="A zero-dependency annotation tool for AI coding agents. Drop one script tag into any HTML page. Click. Annotate. Paste into Claude." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ========================================================
+       Tokens — annotate.js native palette
+       ======================================================== */
+    :root {
+      --paper:       #FAF9F5;
+      --paper-2:     #F5F4ED;
+      --paper-3:     #F0EEE6;
+      --ink:         #1F1E1D;
+      --ink-2:       #3F3D3A;
+      --ink-3:       #75726B;
+      --ink-4:       #A8A49B;
+      --rule:        #E6E2D6;
+      --rule-soft:   #EFEBDD;
+      --accent:      #C96442;
+      --accent-soft: rgba(201, 100, 66, 0.08);
+      --accent-edge: rgba(201, 100, 66, 0.22);
+
+      --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+      --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+      --font-sans:   'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-serif:  'Newsreader', Georgia, serif;
+      --font-mono:   'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--ink);
+      background: var(--paper);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: 'ss01', 'cv11';
+
+      display: grid;
+      grid-template-rows: 56px 1fr 52px;
+    }
+
+    /* Subtle paper grain — barely visible, but warms it up */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(31, 30, 29, 0.022) 1px, transparent 1px);
+      background-size: 4px 4px;
+      mix-blend-mode: multiply;
+      z-index: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    code, pre { font-family: var(--font-mono); }
+    button { font: inherit; }
+
+    /* ========================================================
+       NAV
+       ======================================================== */
+    .nav {
+      position: relative;
+      z-index: 20;
+      border-bottom: 1px solid var(--rule);
+      padding: 0 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(250, 249, 245, 0.85);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      backdrop-filter: saturate(180%) blur(12px);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+    .brand-mark {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 1.5px solid var(--paper);
+      box-shadow: 0 0 0 1px var(--accent),
+                  0 6px 14px -6px rgba(201, 100, 66, 0.4);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--paper);
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .brand-mark::after { content: '·'; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+      padding: 3px 9px;
+      border: 1px solid var(--rule);
+      border-radius: 100px;
+      background: var(--paper);
+    }
+    .pill .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 var(--accent-edge);
+      animation: dot-pulse 2.4s ease-out infinite;
+    }
+    @keyframes dot-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--accent-edge); }
+      50%      { box-shadow: 0 0 0 4px rgba(201, 100, 66, 0); }
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+    .nav-right a { transition: color 160ms var(--ease-out); }
+    .nav-right a:hover { color: var(--ink); }
+    .nav-right .gh {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .nav-right .meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-4);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    /* ========================================================
+       MAIN — single viewport, two columns + gutter
+       ======================================================== */
+    main {
+      position: relative;
+      z-index: 1;
+      padding: 0 36px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) 80px minmax(0, 1fr);
+      gap: 0;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+      min-height: 0;
+    }
+
+    /* SVG connector lines float across the entire main area */
+    #connector {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #connector path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 1;
+      stroke-dasharray: 2 4;
+      stroke-linecap: round;
+      opacity: 0;
+      transition: opacity 700ms var(--ease-out);
+    }
+    #connector path.is-on { opacity: 0.42; }
+
+    /* ----- LEFT: hero content ----- */
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: 40px 0 24px 44px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-3);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 5px 11px 5px 9px;
+      border: 1px solid var(--rule);
+      border-radius: 100px;
+      background: var(--paper);
+      align-self: flex-start;
+      margin-bottom: 26px;
+    }
+    .eyebrow .pulse {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      position: relative;
+    }
+    .eyebrow .pulse::after {
+      content: '';
+      position: absolute; inset: -3px;
+      border-radius: 50%;
+      border: 1px solid var(--accent);
+      animation: pulse-ring 2.6s ease-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%   { transform: scale(0.85); opacity: 0.85; }
+      100% { transform: scale(2.4);  opacity: 0;    }
+    }
+
+    /* Anchored elements get an inline marker on their left */
+    .anchor { position: relative; }
+    .marker {
+      position: absolute;
+      left: -40px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--paper);
+      border: 1.5px solid var(--paper);
+      box-shadow: 0 0 0 1px var(--accent),
+                  0 6px 14px -4px rgba(201, 100, 66, 0.32);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: -0.02em;
+
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 360ms var(--ease-out),
+                  transform 380ms var(--ease-bounce);
+    }
+    .marker.is-on { opacity: 1; transform: scale(1); }
+
+    h1.title {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(40px, 4.6vw, 60px);
+      line-height: 1.02;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+      margin-bottom: 22px;
+    }
+    h1.title em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    h1.title .dim { color: var(--ink-3); font-style: italic; }
+
+    .lede {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--ink-2);
+      max-width: 540px;
+      margin-bottom: 28px;
+    }
+    .lede strong {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* ---- Install card ---- */
+    .install {
+      max-width: 580px;
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--paper);
+      box-shadow:
+        0 1px 0 rgba(31, 30, 29, 0.04),
+        0 4px 14px rgba(31, 30, 29, 0.04),
+        0 22px 50px -28px rgba(31, 30, 29, 0.18);
+      overflow: hidden;
+      margin-bottom: 26px;
+    }
+    .install-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper-2);
+    }
+    .install-head .dots { display: flex; gap: 6px; }
+    .install-head .dots span {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--paper-3);
+      border: 1px solid var(--rule);
+    }
+    .install-head .file {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+    }
+    .install-head .lang {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-4);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .install-body {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+    }
+    .install-body code {
+      flex: 1;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .install-body .tag  { color: var(--accent); }
+    .install-body .attr { color: var(--ink-2); }
+    .install-body .str  { color: var(--ink-3); }
+    .install-body .ell  { color: var(--ink-4); }
+
+    .copy-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 13px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--paper);
+      background: var(--ink);
+      border: 1px solid var(--ink);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 160ms var(--ease-out),
+                  border-color 160ms var(--ease-out),
+                  transform 120ms var(--ease-out);
+    }
+    .copy-btn:hover  { background: var(--ink-2); }
+    .copy-btn:active { transform: scale(0.97); }
+    .copy-btn.copied {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .copy-btn .kbd {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.18);
+      letter-spacing: 0.02em;
+    }
+    .copy-btn svg { width: 12px; height: 12px; }
+
+    /* ---- CTA row ---- */
+    .ctas {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 15px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 160ms var(--ease-out),
+                  border-color 160ms var(--ease-out),
+                  transform 120ms var(--ease-out),
+                  box-shadow 200ms var(--ease-out);
+    }
+    .btn:hover {
+      background: var(--paper-2);
+      border-color: var(--ink-4);
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn svg { width: 14px; height: 14px; }
+    .btn .arrow { width: 12px; transition: transform 220ms var(--ease-out); }
+    .btn:hover .arrow { transform: translateX(3px); }
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+      box-shadow:
+        0 1px 0 rgba(31, 30, 29, 0.06),
+        0 6px 14px -4px rgba(31, 30, 29, 0.18);
+    }
+    .btn-primary:hover {
+      background: var(--ink-2);
+      border-color: var(--ink-2);
+    }
+
+    /* ========================================================
+       RIGHT: annotation cards
+       ======================================================== */
+    .annotations {
+      position: relative;
+      z-index: 1;
+      padding: 40px 0 24px 0;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .annotation {
+      position: relative;
+      padding: 13px 16px 14px 16px;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      box-shadow:
+        0 1px 0 rgba(31, 30, 29, 0.03),
+        0 10px 28px -18px rgba(31, 30, 29, 0.20);
+      opacity: 0;
+      transform: translateX(10px);
+      transition: opacity 420ms var(--ease-out),
+                  transform 460ms var(--ease-out);
+    }
+    .annotation.is-on {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .annotation + .annotation { margin-top: 14px; }
+
+    .annotation .ann-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+    .annotation .ann-num {
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .annotation .ann-path {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      padding: 2px 7px;
+      border-radius: 4px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .annotation .ann-msg {
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--ink-2);
+    }
+    .annotation .ann-msg em {
+      font-family: var(--font-serif);
+      font-style: italic;
+      color: var(--ink);
+    }
+    .annotation .ann-msg strong {
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .annotation .ann-msg .ic {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ========================================================
+       FOOTER
+       ======================================================== */
+    .foot {
+      position: relative;
+      z-index: 20;
+      border-top: 1px solid var(--rule);
+      padding: 0 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(250, 249, 245, 0.9);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      backdrop-filter: saturate(180%) blur(12px);
+      gap: 24px;
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+
+    .workflow {
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+    }
+    .workflow span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-right: 1px solid var(--rule);
+    }
+    .workflow span:last-child { border-right: none; }
+    .workflow span strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .levels {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .levels span {
+      color: var(--ink-4);
+      transition: color 160ms var(--ease-out);
+      cursor: default;
+      position: relative;
+    }
+    .levels span.active {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .levels span.active::before {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 50%;
+      width: 4px; height: 4px;
+      transform: translateY(-50%);
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .creds {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--ink-3);
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+    }
+    .creds .sep { color: var(--ink-4); }
+    .creds a { color: var(--ink-2); }
+    .creds a:hover { color: var(--ink); }
+
+    /* Push the annotate.js corner toolbar above the footer */
+    #ann-toolbar { bottom: 68px !important; }
+
+    /* ========================================================
+       Reduced motion
+       ======================================================== */
+    @media (prefers-reduced-motion: reduce) {
+      .marker, .annotation { transition: opacity 200ms ease; }
+      .pulse::after, .pill .dot { animation: none; }
+      .marker { transform: none; }
+      .annotation { transform: none; }
+    }
+
+    /* ========================================================
+       Narrow viewports — graceful fallback (allow scroll)
+       ======================================================== */
+    @media (max-width: 960px) {
+      html, body { height: auto; overflow: auto; }
+      body { grid-template-rows: 56px auto auto; }
+      main {
+        grid-template-columns: 1fr;
+        padding: 0 24px;
+      }
+      .hero { padding: 32px 0 24px 0; }
+      .marker { display: none; }
+      #connector { display: none; }
+      .annotations { padding: 8px 0 32px 0; }
+      .foot {
+        padding: 16px 24px;
+        flex-direction: column;
+        gap: 12px;
+        height: auto;
+        align-items: flex-start;
+      }
+      body { grid-template-rows: 56px auto auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav">
+    <a href="#" class="brand" aria-label="annotate-html">
+      <span class="brand-mark"></span>
+      annotate-html
+      <span class="pill"><span class="dot"></span>v1.0</span>
+    </a>
+    <nav class="nav-right">
+      <a href="../demo.html">Demo</a>
+      <a href="https://github.com/AsimSayed/annotate-html" target="_blank" rel="noopener" class="gh">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.69-.01-1.36-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.13 0 0 .67-.21 2.2.82a7.59 7.59 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.11.16 1.93.08 2.13.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49 0 1.07-.01 1.94-.01 2.21 0 .21.15.46.55.38A8 8 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <span class="meta">MIT</span>
+    </nav>
+  </header>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+    <!-- SVG connector layer -->
+    <svg id="connector" aria-hidden="true">
+      <path id="line-1" d=""/>
+      <path id="line-2" d=""/>
+      <path id="line-3" d=""/>
+      <path id="line-4" d=""/>
+    </svg>
+
+    <!-- LEFT: hero -->
+    <section class="hero">
+      <span class="eyebrow">
+        <span class="pulse"></span>
+        zero dependencies · one script tag
+      </span>
+
+      <div class="anchor" id="t-1">
+        <span class="marker" id="m-1">1</span>
+        <h1 class="title">
+          Click. Annotate.<br />
+          Paste into <em>Claude</em>.
+        </h1>
+      </div>
+
+      <div class="anchor" id="t-2">
+        <span class="marker" id="m-2">2</span>
+        <p class="lede">
+          A visual feedback tool for AI coding agents. Drop one script tag into any HTML page — <strong>no React, no build, no npm</strong>. Click an element, type what you want changed, paste the structured markdown into Claude Code.
+        </p>
+      </div>
+
+      <div class="anchor" id="t-3">
+        <span class="marker" id="m-3">3</span>
+        <div class="install">
+          <div class="install-head">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="file">index.html</div>
+            <div class="lang">html</div>
+          </div>
+          <div class="install-body">
+            <code><span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="str">"https://cdn.jsdelivr.net/gh/<span class="ell">…</span>/annotate.js"</span><span class="tag">&gt;&lt;/script&gt;</span></code>
+            <button class="copy-btn" id="copyBtn" aria-label="Copy install snippet">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 11V3.5A1.5 1.5 0 014.5 2H11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              <span id="copyLabel">Copy</span>
+              <span class="kbd">⌘C</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="anchor" id="t-4">
+        <span class="marker" id="m-4">4</span>
+        <div class="ctas">
+          <a href="../demo.html" class="btn btn-primary">
+            Try the live demo
+            <svg class="arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a href="https://github.com/AsimSayed/annotate-html" target="_blank" rel="noopener" class="btn">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.69-.01-1.36-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.13 0 0 .67-.21 2.2.82a7.59 7.59 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.11.16 1.93.08 2.13.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49 0 1.07-.01 1.94-.01 2.21 0 .21.15.46.55.38A8 8 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            Source on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- gutter spacer -->
+    <div></div>
+
+    <!-- RIGHT: annotation cards -->
+    <aside class="annotations" aria-label="Live annotations">
+      <article class="annotation" id="a-1">
+        <div class="ann-head">
+          <span class="ann-num">Annotation 1</span>
+          <span class="ann-path">h1.title</span>
+        </div>
+        <p class="ann-msg">Newsreader italic, ~60px. <em>The page is the demo.</em> Press <strong>Alt+A</strong>, hover anything, click — annotate any element you can see, including this title.</p>
+      </article>
+
+      <article class="annotation" id="a-2">
+        <div class="ann-head">
+          <span class="ann-num">Annotation 2</span>
+          <span class="ann-path">p.lede</span>
+        </div>
+        <p class="ann-msg">Each annotation captures element name, full selector path, computed styles, bounding box, and nearby text — everything an agent needs to find the right code.</p>
+      </article>
+
+      <article class="annotation" id="a-3">
+        <div class="ann-head">
+          <span class="ann-num">Annotation 3</span>
+          <span class="ann-path">div.install &gt; code</span>
+        </div>
+        <p class="ann-msg">One <span class="ic">&lt;script&gt;</span> tag. ES5 IIFE, ~24 KB, served from jsDelivr. Works in any HTML page — server-rendered templates, static sites, plain artboards.</p>
+      </article>
+
+      <article class="annotation" id="a-4">
+        <div class="ann-head">
+          <span class="ann-num">Annotation 4</span>
+          <span class="ann-path">a.btn-primary</span>
+        </div>
+        <p class="ann-msg">A toolbar lives bottom-right of every page. Annotate, click <strong>Copy</strong>, paste structured markdown into Claude Code, Cursor, or Copilot. <em>It's right there →</em></p>
+      </article>
+    </aside>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="foot">
+    <div class="workflow" aria-label="Workflow">
+      <span><strong>1</strong> drop</span>
+      <span><strong>2</strong> Alt+A</span>
+      <span><strong>3</strong> click</span>
+      <span><strong>4</strong> paste</span>
+    </div>
+    <div class="levels" aria-label="Output detail levels">
+      <span>compact</span>
+      <span class="active">standard</span>
+      <span>detailed</span>
+      <span>forensic</span>
+    </div>
+    <div class="creds">
+      <span>Adapted from <a href="https://github.com/benjitaylor/agentation" target="_blank" rel="noopener">Agentation</a></span>
+      <span class="sep">·</span>
+      <span>Built by <a href="https://asimsayed.com" target="_blank" rel="noopener">Asim Sayed</a></span>
+    </div>
+  </footer>
+
+  <!-- ============ Live annotate.js — the corner toolbar is real ============ -->
+  <script src="../annotate.js"></script>
+
+  <!-- ============ Page choreography ============ -->
+  <script>
+    // Map markers to their annotation cards and connector paths.
+    var PAIRS = [
+      { mk: 'm-1', an: 'a-1', ln: 'line-1' },
+      { mk: 'm-2', an: 'a-2', ln: 'line-2' },
+      { mk: 'm-3', an: 'a-3', ln: 'line-3' },
+      { mk: 'm-4', an: 'a-4', ln: 'line-4' }
+    ];
+
+    function drawConnectors() {
+      var svg = document.getElementById('connector');
+      if (!svg) return;
+      var main = svg.parentElement; // <main>
+      var mr = main.getBoundingClientRect();
+      svg.setAttribute('width', mr.width);
+      svg.setAttribute('height', mr.height);
+      svg.setAttribute('viewBox', '0 0 ' + mr.width + ' ' + mr.height);
+
+      PAIRS.forEach(function (p) {
+        var m = document.getElementById(p.mk);
+        var a = document.getElementById(p.an);
+        var ln = document.getElementById(p.ln);
+        if (!m || !a || !ln) return;
+
+        var br = m.getBoundingClientRect();
+        var ar = a.getBoundingClientRect();
+
+        // start: just past the marker's right edge
+        var x1 = br.right - mr.left + 4;
+        var y1 = (br.top + br.bottom) / 2 - mr.top;
+        // end: just before the annotation's left edge
+        var x2 = ar.left - mr.left - 4;
+        var y2 = (ar.top + ar.bottom) / 2 - mr.top;
+
+        // gentle bezier
+        var dx = x2 - x1;
+        var cx1 = x1 + dx * 0.55;
+        var cx2 = x2 - dx * 0.55;
+        var d = 'M ' + x1 + ',' + y1 +
+                ' C ' + cx1 + ',' + y1 +
+                ' '   + cx2 + ',' + y2 +
+                ' '   + x2  + ',' + y2;
+        ln.setAttribute('d', d);
+      });
+    }
+
+    function reveal() {
+      drawConnectors();
+      PAIRS.forEach(function (p, i) {
+        setTimeout(function () {
+          var m = document.getElementById(p.mk);
+          var a = document.getElementById(p.an);
+          var l = document.getElementById(p.ln);
+          if (m) m.classList.add('is-on');
+          if (a) a.classList.add('is-on');
+          if (l) l.classList.add('is-on');
+        }, 360 + i * 160);
+      });
+    }
+
+    // Wait for fonts so layout measurements are accurate
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(reveal);
+    } else {
+      window.addEventListener('load', reveal);
+    }
+
+    // Redraw connectors on resize (debounced)
+    var rT;
+    window.addEventListener('resize', function () {
+      clearTimeout(rT);
+      rT = setTimeout(drawConnectors, 60);
+    });
+
+    // Install card → copy snippet
+    var copyBtn = document.getElementById('copyBtn');
+    var copyLabel = document.getElementById('copyLabel');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var snippet = '<script src="https://cdn.jsdelivr.net/gh/AsimSayed/annotate-html@main/annotate.js"></' + 'script>';
+        var done = function () {
+          copyLabel.textContent = 'Copied';
+          copyBtn.classList.add('copied');
+          setTimeout(function () {
+            copyLabel.textContent = 'Copy';
+            copyBtn.classList.remove('copied');
+          }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(snippet).then(done, function () { copyLabel.textContent = '⌘C'; });
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = snippet; document.body.appendChild(ta);
+          ta.select(); try { document.execCommand('copy'); done(); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

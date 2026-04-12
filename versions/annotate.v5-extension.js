@@ -33,13 +33,7 @@
     counter: 0,
     markersHidden: false,
     toolbarHidden: false,
-    markerColor: "#C96442",
   };
-
-  var MARKER_COLORS = [
-    "#C96442", "#EF4444", "#F59E0B",
-    "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6",
-  ];
 
   // ═══════════════════════════════════════════
   // Element Identification (ported from agentation)
@@ -307,7 +301,7 @@
 
       // Collapsed (round button) state — same element morphs
       '#ann-toolbar.collapsed{max-width:44px;padding:0;border-radius:50%;',
-      'overflow:visible;justify-content:center;cursor:pointer;',
+      'justify-content:center;cursor:pointer;',
       'box-shadow:0 1px 2px rgba(31,30,29,.04),0 6px 18px rgba(31,30,29,.10)}',
       '@media (hover:hover){#ann-toolbar.collapsed:hover{',
       'box-shadow:0 2px 4px rgba(31,30,29,.06),0 10px 28px rgba(31,30,29,.14)}}',
@@ -325,7 +319,7 @@
       '#ann-toolbar.collapsed .ann-collapsed-view{opacity:1;pointer-events:auto;',
       'transition:opacity .14s ease .22s}',
       '.ann-collapsed-view svg{width:18px;height:18px;display:block}',
-      '.ann-collapsed-view .ann-collapsed-badge{position:absolute;top:-4px;right:-4px;',
+      '.ann-collapsed-view .ann-collapsed-badge{position:absolute;top:4px;right:4px;',
       'background:#C96442;color:#FAF9F5;border:1.5px solid #FAF9F5;',
       'border-radius:100px;min-width:17px;height:17px;padding:0 4px;',
       'font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;',
@@ -348,7 +342,7 @@
 
       // Eye-toggle button with corner badge
       '#ann-toolbar .ann-eye-btn{position:relative}',
-      '#ann-toolbar .ann-eye-badge{position:absolute;top:-3px;right:-3px;',
+      '#ann-toolbar .ann-eye-badge{position:absolute;top:-2px;right:-2px;',
       'background:#C96442;color:#FAF9F5;border:1.5px solid #FAF9F5;',
       'border-radius:100px;min-width:17px;height:17px;padding:0 4px;',
       'font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;',
@@ -364,46 +358,6 @@
       // Copy success state
       '#ann-toolbar button.success{background:rgba(34,165,90,.10)}',
       '#ann-toolbar button.success svg{color:inherit}',
-
-      // Color swatch (toolbar circle)
-      '#ann-toolbar .ann-color-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;',
-      'border:2px solid rgba(31,30,29,.10);flex-shrink:0;',
-      'transition:transform .15s ease,border-color .15s ease}',
-      '@media (hover:hover){#ann-toolbar .ann-color-swatch:hover{transform:scale(1.1);',
-      'border-color:rgba(31,30,29,.25)}}',
-      '#ann-toolbar .ann-color-swatch:active{transform:scale(.95)}',
-
-      // Color picker popover
-      '#ann-color-picker{position:fixed;z-index:99998;',
-      'background:#FAF9F5;border:1px solid rgba(31,30,29,.08);',
-      'border-radius:12px;padding:10px 14px;',
-      'box-shadow:0 1px 2px rgba(31,30,29,.04),0 12px 32px rgba(31,30,29,.14);',
-      'display:flex;gap:8px;align-items:center;',
-      'animation:ann-popup-in .2s cubic-bezier(.2,.8,.2,1) both}',
-      '.ann-color-opt{width:28px;height:28px;border-radius:50%;cursor:pointer;',
-      'flex-shrink:0;border:none;padding:0;',
-      'transition:transform .12s ease}',
-      '@media (hover:hover){.ann-color-opt:hover{transform:scale(1.15)}}',
-      '.ann-color-opt:active{transform:scale(.92)}',
-      '.ann-color-opt.active{box-shadow:0 0 0 2px #FAF9F5,0 0 0 3.5px #1F1E1D}',
-
-      // Custom toolbar tooltip (pops above)
-      '#ann-tip{position:fixed;z-index:100000;',
-      'background:#FAF9F5;border:1px solid rgba(31,30,29,.08);',
-      'border-radius:8px;padding:5px 10px;',
-      'box-shadow:0 2px 12px rgba(31,30,29,.12);',
-      'font-family:ui-sans-serif,-apple-system,system-ui,sans-serif;',
-      '-webkit-font-smoothing:antialiased;',
-      'font-size:12px;font-weight:500;color:#1F1E1D;',
-      'white-space:nowrap;pointer-events:none;',
-      'opacity:0;transform:translateX(-50%) translateY(4px);',
-      'transition:opacity .1s ease,transform .1s ease}',
-      '#ann-tip.show{opacity:1;transform:translateX(-50%) translateY(0)}',
-      '#ann-tip .ann-tip-key{color:#9A968E;margin-left:6px;font-size:11px;font-weight:400}',
-      "#ann-tip::after{content:'';position:absolute;bottom:-5px;left:50%;",
-      'transform:translateX(-50%);',
-      'border-left:5px solid transparent;border-right:5px solid transparent;',
-      'border-top:5px solid #FAF9F5}',
 
       '#ann-toolbar .ann-divider{width:1px;height:18px;background:rgba(31,30,29,.10);margin:0 2px}',
 
@@ -438,7 +392,7 @@
       'transform:translate(-50%,-100%);',
       'animation:ann-pop .3s cubic-bezier(.2,.8,.2,1) backwards}',
       // Inner circle — the actual visible pin, scales on hover
-      '.ann-marker-circle{cursor:pointer;width:24px;height:24px;border-radius:50%;',
+      '.ann-marker-circle{width:24px;height:24px;border-radius:50%;',
       'background:#C96442;color:#FAF9F5;',
       'font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;',
       'display:flex;align-items:center;justify-content:center;',
@@ -534,11 +488,9 @@
       'body.ann-active *{cursor:crosshair !important}',
       // Override crosshair on the tool's own UI
       'body.ann-active #ann-toolbar,body.ann-active #ann-toolbar *,',
-      'body.ann-active #ann-color-picker,body.ann-active #ann-color-picker *,',
       'body.ann-active #ann-popup,body.ann-active #ann-popup *,',
       'body.ann-active .ann-marker,body.ann-active .ann-marker *{cursor:auto !important}',
-      'body.ann-active #ann-toolbar button,body.ann-active #ann-toolbar .ann-color-swatch,',
-      'body.ann-active #ann-color-picker .ann-color-opt,',
+      'body.ann-active #ann-toolbar button,body.ann-active #ann-toolbar select,',
       'body.ann-active #ann-toolbar.collapsed,body.ann-active .ann-collapsed-view,',
       'body.ann-active #ann-popup button,body.ann-active #ann-popup .ann-popup-header,',
       'body.ann-active .ann-marker{cursor:pointer !important}',
@@ -660,70 +612,6 @@
   var markersContainer;
   var eyeBtn, eyeIconWrap, eyeBadge, copyBtn;
   var collapsedView, collapsedBadge;
-  var colorSwatch, colorPicker;
-  var accentSheet;
-  var tipEl;
-
-  function darkenHex(hex, amt) {
-    var r = Math.max(0, parseInt(hex.slice(1, 3), 16) - amt);
-    var g = Math.max(0, parseInt(hex.slice(3, 5), 16) - amt);
-    var b = Math.max(0, parseInt(hex.slice(5, 7), 16) - amt);
-    return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
-  }
-
-  function updateAccentColor(hex) {
-    state.markerColor = hex;
-    if (colorSwatch) colorSwatch.style.background = hex;
-
-    if (!accentSheet) {
-      accentSheet = document.createElement("style");
-      accentSheet.id = "ann-accent-styles";
-      document.head.appendChild(accentSheet);
-    }
-
-    var bg10 = hex + "1A";   // 10%
-    var bg42 = hex + "6B";   // 42%
-    var dark = darkenHex(hex, 20);
-
-    accentSheet.textContent = [
-      "#ann-toolbar button.active{background:" + bg10 + ";color:" + hex + "}",
-      "#ann-toolbar .ann-eye-badge{background:" + hex + "}",
-      ".ann-collapsed-view{color:" + hex + "}",
-      ".ann-collapsed-view .ann-collapsed-badge{background:" + hex + "}",
-      ".ann-marker-tip strong{color:" + hex + "}",
-      "#ann-popup .ann-popup-label{color:" + hex + "}",
-      "#ann-popup .ann-popup-header.expanded .ann-popup-chevron{color:" + hex + "}",
-      "#ann-popup textarea:focus{border-color:" + hex + "}",
-      "#ann-popup .ann-popup-actions button.primary{background:" + hex + ";border-color:" + hex + "}",
-      "#ann-toast svg{color:" + hex + "}",
-      "@media (hover:hover){",
-      "#ann-popup .ann-popup-actions button.primary:hover{background:" + dark + ";border-color:" + dark + "}",
-      "#ann-popup .ann-popup-actions button.icon-only:hover{background:" + bg10 + ";color:" + hex + "}",
-      ".ann-marker:hover .ann-marker-circle{box-shadow:0 2px 4px rgba(31,30,29,.12),0 8px 22px " + bg42 + "}}",
-    ].join("\n");
-
-    renderMarkers();
-  }
-
-  function addTip(target, text, key) {
-    target.addEventListener("mouseenter", function () {
-      if (!tipEl) return;
-      tipEl.innerHTML = escHtml(text) + (key ? '<span class="ann-tip-key">' + escHtml(key) + '</span>' : "");
-      var r = target.getBoundingClientRect();
-      tipEl.style.left = (r.left + r.width / 2) + "px";
-      tipEl.style.top = (r.top - 8) + "px";
-      tipEl.style.bottom = "auto";
-      // Anchor bottom of tooltip to that top value
-      requestAnimationFrame(function () {
-        var th = tipEl.offsetHeight;
-        tipEl.style.top = (r.top - 8 - th) + "px";
-        tipEl.classList.add("show");
-      });
-    });
-    target.addEventListener("mouseleave", function () {
-      if (tipEl) tipEl.classList.remove("show");
-    });
-  }
 
   function createToolbar() {
     injectStyles();
@@ -754,30 +642,14 @@
     var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
     var altKey = isMac ? "\u2325" : "Alt";
 
-    // Shared tooltip element
-    tipEl = el("div", { id: "ann-tip" });
-    document.body.appendChild(tipEl);
-
     // Toggle annotate mode
     var toggleBtn = el("button", {
-      onClick: toggleActive
+      onClick: toggleActive,
+      title: "Toggle annotation mode (" + altKey + "+A)"
     });
     toggleBtn.id = "ann-toggle-btn";
     toggleBtn.appendChild(iconEl("pencil"));
     toggleBtn.appendChild(document.createTextNode("Annotate"));
-
-    // Color swatch
-    colorSwatch = el("div", {
-      className: "ann-color-swatch",
-      role: "button",
-      tabindex: "0",
-      "aria-label": "Change marker color"
-    });
-    colorSwatch.style.background = state.markerColor;
-    colorSwatch.addEventListener("click", function (e) { e.stopPropagation(); showColorPicker(); });
-    colorSwatch.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showColorPicker(); }
-    });
 
     var divider1 = el("span", { className: "ann-divider" });
 
@@ -785,6 +657,7 @@
     eyeBtn = el("button", {
       className: "icon-only ann-eye-btn",
       onClick: toggleMarkersVisibility,
+      title: "Show/hide annotation markers",
       "aria-label": "Show or hide markers"
     });
     eyeIconWrap = el("span", { className: "ann-eye-icon" });
@@ -797,7 +670,8 @@
     copyBtn = el("button", {
       className: "icon-only",
       onClick: copyOutput,
-      "aria-label": "Copy feedback"
+      title: "Copy annotations as markdown",
+      "aria-label": "Copy annotations"
     });
     copyBtn.appendChild(iconEl("copy"));
 
@@ -805,31 +679,23 @@
     var clearBtn = el("button", {
       className: "icon-only",
       onClick: clearAll,
-      "aria-label": "Clear all"
+      title: "Clear all annotations",
+      "aria-label": "Clear all annotations"
     });
     clearBtn.appendChild(iconEl("trash"));
 
     var divider3 = el("span", { className: "ann-divider" });
 
-    // Close (collapse toolbar)
+    // Close (hide toolbar)
     var closeBtn = el("button", {
       className: "icon-only",
       onClick: hideToolbar,
-      "aria-label": "Close"
+      title: "Hide toolbar (" + altKey + "+A to bring back)",
+      "aria-label": "Hide toolbar"
     });
     closeBtn.appendChild(iconEl("x"));
 
-    var toggleKey = (isMac ? "\u2325" : "Alt") + "+A";
-    var extKey = isMac ? "\u2325\u21E7A" : "Alt+Shift+A";
-    addTip(toggleBtn, "Toggle mode", toggleKey);
-    addTip(colorSwatch, "Marker color", "M");
-    addTip(eyeBtn, "Show/hide markers", "H");
-    addTip(copyBtn, "Copy markdown", "C");
-    addTip(clearBtn, "Clear all");
-    addTip(closeBtn, "Close", extKey);
-
     toolbar.appendChild(toggleBtn);
-    toolbar.appendChild(colorSwatch);
     toolbar.appendChild(divider1);
     toolbar.appendChild(eyeBtn);
     toolbar.appendChild(copyBtn);
@@ -972,45 +838,12 @@
   }
 
   // ═══════════════════════════════════════════
-  // Color picker
-  // ═══════════════════════════════════════════
-
-  function closeColorPicker() {
-    if (colorPicker && colorPicker.parentNode) colorPicker.parentNode.removeChild(colorPicker);
-    colorPicker = null;
-  }
-
-  function showColorPicker() {
-    if (colorPicker) { closeColorPicker(); return; }
-    colorPicker = el("div", { id: "ann-color-picker" });
-
-    MARKER_COLORS.forEach(function (hex) {
-      var opt = el("div", { className: "ann-color-opt" + (hex === state.markerColor ? " active" : "") });
-      opt.style.background = hex;
-      opt.addEventListener("click", function (e) {
-        e.stopPropagation();
-        updateAccentColor(hex);
-        closeColorPicker();
-      });
-      colorPicker.appendChild(opt);
-    });
-
-    // Position above the swatch
-    var swRect = colorSwatch.getBoundingClientRect();
-    colorPicker.style.bottom = (window.innerHeight - swRect.top + 8) + "px";
-    colorPicker.style.right = (window.innerWidth - swRect.right) + "px";
-
-    document.body.appendChild(colorPicker);
-  }
-
-  // ═══════════════════════════════════════════
   // Popup (comment input)
   // ═══════════════════════════════════════════
 
   function closePopup() {
     if (popup && popup.parentNode) popup.parentNode.removeChild(popup);
     popup = null;
-    closeColorPicker();
   }
 
   function buildPopupHeader(elementName, elementPath) {
@@ -1166,9 +999,6 @@
 
       // Inner visible circle — this scales on hover, the wrapper does not
       var circle = el("div", { className: "ann-marker-circle" });
-      circle.style.background = state.markerColor;
-      circle.style.boxShadow = "0 1px 2px rgba(31,30,29,.10),0 4px 12px " +
-        state.markerColor + "4D"; // 30% opacity hex suffix
       var numEl = el("span", { className: "ann-marker-num" }, String(i + 1));
       var editEl = el("span", { className: "ann-marker-edit" });
       editEl.appendChild(iconEl("pencilPlain"));
@@ -1209,7 +1039,6 @@
     var node = el;
     while (node) {
       if (node.id === "ann-toolbar" || node.id === "ann-popup" ||
-          node.id === "ann-color-picker" || node.id === "ann-tip" ||
           node.id === "ann-hover-highlight" || node.id === "ann-hover-label" ||
           (node.className && typeof node.className === "string" && node.className.indexOf("ann-marker") !== -1)) {
         return true;
@@ -1235,8 +1064,6 @@
     hoverHighlight.style.top = rect.top + "px";
     hoverHighlight.style.width = rect.width + "px";
     hoverHighlight.style.height = rect.height + "px";
-    hoverHighlight.style.borderColor = state.markerColor;
-    hoverHighlight.style.background = state.markerColor + "0A";
 
     // Label
     var info = identifyElement(target);
@@ -1282,18 +1109,8 @@
         toggleActive();
       }
     }
-    // Single-key shortcuts (only when no popup/input is focused)
-    if (!e.metaKey && !e.ctrlKey && !e.altKey && !popup && !colorPicker &&
-        document.activeElement && document.activeElement.tagName !== "TEXTAREA" &&
-        document.activeElement.tagName !== "INPUT") {
-      var k = e.key.toLowerCase();
-      if (k === "c" && state.annotations.length > 0) { e.preventDefault(); copyOutput(); }
-      if (k === "m") { e.preventDefault(); showColorPicker(); }
-      if (k === "h") { e.preventDefault(); toggleMarkersVisibility(); }
-    }
     // Escape to deactivate or close popup
     if (e.key === "Escape") {
-      if (colorPicker) { closeColorPicker(); return; }
       if (popup) { closePopup(); return; }
       if (state.active) toggleActive();
     }

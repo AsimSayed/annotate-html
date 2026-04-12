@@ -24,6 +24,16 @@ Or download `annotate.js` and include it locally:
 
 That's it.
 
+## Install as a Chrome extension (optional)
+
+If you don't control a site's HTML — staging URLs, production sites, design references, competitor pages — the same tool is available as a Chrome extension. Click the extension's toolbar icon (or press `Alt+Shift+A`) on any page to inject the toolbar for that tab.
+
+1. Clone this repo
+2. Open `chrome://extensions` → toggle **Developer mode** → **Load unpacked**
+3. Select the `extension/` folder
+
+Both distribution channels share the same `annotate.js` file. See [`extension/README.md`](extension/README.md) for the loader details.
+
 ## How it works
 
 1. A toolbar appears in the bottom-right corner of your page

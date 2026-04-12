@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Annotate HTML",
+  "short_name": "Annotate",
+  "version": "1.0.0",
+  "description": "Click-to-annotate any page. Generates clean markdown feedback for AI coding agents.",
+  "action": {
+    "default_title": "Toggle Annotate toolbar",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["activeTab", "scripting"],
+  "commands": {
+    "toggle-annotate": {
+      "suggested_key": {
+        "default": "Alt+Shift+A",
+        "mac": "Alt+Shift+A"
+      },
+      "description": "Toggle Annotate toolbar on the current tab"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
