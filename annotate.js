@@ -575,8 +575,10 @@
 
       // Guide lines (dropped from rulers)
       '.ann-guide{position:fixed;z-index:99987;pointer-events:auto}',
-      '.ann-guide-h{left:0;right:0;height:1px;cursor:ns-resize}',
-      '.ann-guide-v{top:0;bottom:0;width:1px;cursor:ew-resize}',
+      '.ann-guide-h{left:0;right:0;height:0;padding:4px 0;border-top:1px solid;',
+      'cursor:ns-resize;background:none !important;box-sizing:content-box}',
+      '.ann-guide-v{top:0;bottom:0;width:0;padding:0 4px;border-left:1px solid;',
+      'cursor:ew-resize;background:none !important;box-sizing:content-box}',
       // Guide handle (drag affordance + label + close)
       '.ann-guide-handle{position:absolute;display:flex;align-items:center;gap:2px;',
       'background:#FAF9F5;border:1px solid rgba(31,30,29,.10);',
@@ -956,7 +958,7 @@
     rulerEl.addEventListener("mousedown", function (e) {
       e.preventDefault();
       preview = el("div", { className: "ann-guide ann-guide-" + guideDir });
-      preview.style.background = state.markerColor;
+      preview.style.borderColor = state.markerColor;
       preview.style.opacity = "0.5";
       var lbl = el("span", { className: "ann-guide-label" }, "0px");
       preview.appendChild(lbl);
@@ -1074,7 +1076,7 @@
   function addGuide(dir, viewPos, pagePos) {
     var guide = el("div", { className: "ann-guide ann-guide-" + dir });
     guide.style[dir === "h" ? "top" : "left"] = viewPos + "px";
-    guide.style.background = state.markerColor;
+    guide.style.borderColor = state.markerColor;
     guide._pagePos = pagePos;
     guide._dir = dir;
 
