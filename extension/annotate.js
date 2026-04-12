@@ -719,13 +719,7 @@
 
   function cursorSvg(hex) {
     var encoded = hex.replace("#", "%23");
-    var path = "M58.8282 156.513L62.2248 103.934L18.2055 133.416L0 101.353L47.4158 78.2565L0 55.1599L18.2055 23.0965L62.2248 52.5786L58.8282 0H95.3751L91.8427 52.5786L135.862 23.0965L154.067 55.1599L106.787 78.2565L154.067 101.353L135.862 133.416L91.8427 103.934L95.3751 156.513H58.8282Z";
-    // Shadow layer (offset down, semi-transparent black), white border, then colored fill
-    return "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='-14 -12 183 185'%3E" +
-      "%3Cg transform='translate(0,2)' opacity='0.15'%3E%3Cpath d='" + path + "' fill='%23000' stroke='%23000' stroke-width='10' stroke-linejoin='round'/%3E%3C/g%3E" +
-      "%3Cpath d='" + path + "' fill='white' stroke='white' stroke-width='10' stroke-linejoin='round'/%3E" +
-      "%3Cpath d='" + path + "' fill='" + encoded + "'/%3E" +
-      "%3C/svg%3E\") 16 16,crosshair";
+    return "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 155 157' fill='none'%3E%3Cpath d='M58.8282 156.513L62.2248 103.934L18.2055 133.416L0 101.353L47.4158 78.2565L0 55.1599L18.2055 23.0965L62.2248 52.5786L58.8282 0H95.3751L91.8427 52.5786L135.862 23.0965L154.067 55.1599L106.787 78.2565L154.067 101.353L135.862 133.416L91.8427 103.934L95.3751 156.513H58.8282Z' fill='" + encoded + "'/%3E%3C/svg%3E\") 14 14,crosshair";
   }
 
   function darkenHex(hex, amt) {
