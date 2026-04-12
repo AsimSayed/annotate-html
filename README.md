@@ -37,20 +37,33 @@ Both distribution channels share the same `annotate.js` file. See [`extension/RE
 ## How it works
 
 1. A toolbar appears in the bottom-right corner of your page
-2. Click **Annotate** (or press **Alt+A**) to enter annotation mode
-3. Hover over any element — see a blue highlight and selector label
-4. Click an element — type your feedback in the popup
-5. Numbered markers appear on the page
-6. Click **Copy** — structured markdown lands on your clipboard
-7. Paste into Claude Code, Cursor, Copilot, or any AI coding agent
+2. Click **Annotate** (or press `Alt+A`) to enter annotation mode — an asterisk cursor appears
+3. Hover over any element — see a colored highlight and selector label
+4. Click an element — a popup shows computed styles and a text field for your feedback
+5. Numbered markers drop at your cursor position
+6. Hover a marker to preview your comment, click to edit
+7. Press `C` or click Copy — structured markdown lands on your clipboard
+8. Paste into Claude Code, Cursor, Copilot, or any AI coding agent
+
+### Toolbar
+
+The toolbar collapses to a round asterisk button when closed. Click it or press `Alt+A` to expand.
+
+- **Color picker** — click the color swatch (or press `M`) to choose a marker color. Changes the accent color across the entire UI: markers, highlights, cursor, buttons, and badges.
+- **Show/hide** — press `H` or click the eye icon to toggle markers and rulers
+- **Copy markdown** — press `C` to copy all annotations as structured markdown
+- **Close** — collapses to a round button; `Alt+Shift+A` (extension shortcut) or `Alt+A` brings it back
 
 ### Keyboard shortcuts
 
 | Key | Action |
 |---|---|
 | `Alt+A` | Toggle annotation mode |
+| `C` | Copy markdown to clipboard |
+| `M` | Open/close marker color picker |
+| `H` | Show/hide markers and rulers |
 | `Cmd/Ctrl+Enter` | Submit annotation |
-| `Esc` | Close popup or exit annotation mode |
+| `Esc` | Close popup, color picker, or exit annotation mode |
 
 ## What it captures
 
@@ -68,16 +81,11 @@ Each annotation includes structured data that helps AI agents find the exact cod
 | Full DOM path | `main#main > section.hero > div.wrap > div > a.btn-primary` |
 | Selected text | Any text you highlight before clicking |
 
-## Output detail levels
+## Output format
 
-Choose the verbosity that fits your workflow:
+Annotations are exported as detailed markdown. Each annotation includes the element name, selector path, CSS classes, bounding box, nearby text context, and your feedback.
 
-- **Compact** — Just the element name and your comment. One line per annotation.
-- **Standard** — Adds the selector path and selected text. Good default.
-- **Detailed** — Adds CSS classes, bounding box, and nearby text context.
-- **Forensic** — Everything: full DOM path, computed styles, accessibility info, viewport, URL, timestamp.
-
-### Example output (Standard)
+### Example output
 
 ```markdown
 ## Page Feedback: /index.html
@@ -85,6 +93,8 @@ Choose the verbosity that fits your workflow:
 
 ### 1. button "Download for macOS"
 **Location:** .hero > .wrap > .hero-actions > .btn-primary
+**Classes:** btn-primary
+**Position:** 420px, 380px (180x48px)
 **Feedback:** Make the border-radius softer, more like 100px pill shape
 
 ### 2. h2 "Built with Swift."
@@ -97,11 +107,15 @@ Choose the verbosity that fits your workflow:
 | | annotate-html | Agentation |
 |---|---|---|
 | Dependencies | None | React 18+ |
-| Install | `<script>` tag | `npm install agentation` |
+| Install | `<script>` tag or Chrome extension | `npm install agentation` |
 | Frameworks | Any HTML page | React apps |
 | Build step | No | Yes |
 | Element identification | Yes | Yes |
 | Text selection | Yes | Yes |
+| Computed styles preview | Yes | Yes |
+| Marker color picker | Yes | Yes |
+| Custom cursor | Yes | No |
+| Chrome extension | Yes | No |
 | Multi-select | No | Yes |
 | Design/layout mode | No | Yes |
 | Animation freeze | No | Yes |

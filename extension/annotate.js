@@ -688,6 +688,10 @@
     chevronDown: '<svg ' + ICON_ATTRS + '>' +
       '<path d="m6 9 6 6 6-6"/>' +
       '</svg>',
+    // asterisk logo mark
+    asterisk: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 155 157" fill="currentColor" aria-hidden="true">' +
+      '<path d="M58.8282 156.513L62.2248 103.934L18.2055 133.416L0 101.353L47.4158 78.2565L0 55.1599L18.2055 23.0965L62.2248 52.5786L58.8282 0H95.3751L91.8427 52.5786L135.862 23.0965L154.067 55.1599L106.787 78.2565L154.067 101.353L135.862 133.416L91.8427 103.934L95.3751 156.513H58.8282Z"/>' +
+      '</svg>',
     // check-circle filled (for copy success)
     checkCircleFilled: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
       '<circle cx="12" cy="12" r="10" fill="#22A55A"/>' +
@@ -715,7 +719,13 @@
 
   function cursorSvg(hex) {
     var encoded = hex.replace("#", "%23");
-    return "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 155 157' fill='none'%3E%3Cpath d='M58.8282 156.513L62.2248 103.934L18.2055 133.416L0 101.353L47.4158 78.2565L0 55.1599L18.2055 23.0965L62.2248 52.5786L58.8282 0H95.3751L91.8427 52.5786L135.862 23.0965L154.067 55.1599L106.787 78.2565L154.067 101.353L135.862 133.416L91.8427 103.934L95.3751 156.513H58.8282Z' fill='" + encoded + "'/%3E%3C/svg%3E\") 14 14,crosshair";
+    var path = "M58.8282 156.513L62.2248 103.934L18.2055 133.416L0 101.353L47.4158 78.2565L0 55.1599L18.2055 23.0965L62.2248 52.5786L58.8282 0H95.3751L91.8427 52.5786L135.862 23.0965L154.067 55.1599L106.787 78.2565L154.067 101.353L135.862 133.416L91.8427 103.934L95.3751 156.513H58.8282Z";
+    // Shadow layer (offset down, semi-transparent black), white border, then colored fill
+    return "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='-14 -12 183 185'%3E" +
+      "%3Cg transform='translate(0,2)' opacity='0.15'%3E%3Cpath d='" + path + "' fill='%23000' stroke='%23000' stroke-width='10' stroke-linejoin='round'/%3E%3C/g%3E" +
+      "%3Cpath d='" + path + "' fill='white' stroke='white' stroke-width='10' stroke-linejoin='round'/%3E" +
+      "%3Cpath d='" + path + "' fill='" + encoded + "'/%3E" +
+      "%3C/svg%3E\") 16 16,crosshair";
   }
 
   function darkenHex(hex, amt) {
@@ -817,7 +827,7 @@
       onClick: toggleActive
     });
     toggleBtn.id = "ann-toggle-btn";
-    toggleBtn.appendChild(iconEl("pencil"));
+    toggleBtn.appendChild(iconEl("asterisk"));
     toggleBtn.appendChild(document.createTextNode("Annotate"));
 
     // Color swatch
@@ -899,7 +909,7 @@
       title: "Open annotate-html (" + altKey + "+A)",
       "aria-label": "Open annotate toolbar"
     });
-    collapsedView.appendChild(iconEl("pencil"));
+    collapsedView.appendChild(iconEl("asterisk"));
     collapsedBadge = el("span", { className: "ann-collapsed-badge empty" }, "0");
     collapsedView.appendChild(collapsedBadge);
     collapsedView.addEventListener("click", showToolbar);
