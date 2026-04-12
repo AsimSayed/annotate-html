@@ -9,7 +9,7 @@
   <link rel="icon" href="../logo-mark.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
 
   <style>
     :root {
@@ -166,11 +166,47 @@
     .foot a:hover { color: var(--ink); }
     .foot .sep { color: var(--rule); margin: 0 8px; }
 
+    /* Handwritten overlay */
+    .try-it {
+      position: fixed;
+      bottom: 72px;
+      right: 200px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(8px) rotate(-3deg);
+      animation: try-it-in 600ms 0.8s var(--ease-out) forwards;
+    }
+    .try-it-text {
+      font-family: 'Caveat', cursive;
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .try-it-arrow {
+      width: 40px;
+      height: 40px;
+      margin-top: -4px;
+      align-self: flex-end;
+      margin-right: -10px;
+    }
+    @keyframes try-it-in {
+      to { opacity: 1; transform: translateY(0) rotate(-3deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .try-it { animation: none; opacity: 1; transform: rotate(-3deg); }
+    }
+
     @media (max-width: 860px) {
       html, body { height: auto; overflow: auto; }
       body { grid-template-rows: 72px auto auto; }
       main { padding: 32px 24px; }
       .foot { padding: 0 24px 12px; }
+      .try-it { display: none; }
     }
   </style>
 </head>
@@ -232,6 +268,14 @@
     <span class="sep">·</span>
     MIT
   </footer>
+
+  <!-- Handwritten "try it here" pointing to the toolbar -->
+  <div class="try-it" aria-hidden="true">
+    <span class="try-it-text">try it here</span>
+    <svg class="try-it-arrow" viewBox="0 0 50 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 3 C20 12, 32 22, 38 35" stroke="#C96442" stroke-width="2" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
 
   <!-- Load annotate.js — provides toolbar, markers, guides, and seed() API -->
   <script src="../annotate.js"></script>
