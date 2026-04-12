@@ -435,7 +435,7 @@
       // Markers — outer wrapper handles position + entry pop only (no visual)
       '.ann-marker{position:absolute;z-index:99992;width:24px;height:24px;',
       'cursor:pointer;overflow:visible;',
-      'transform:translate(-50%,-100%);',
+      'transform:translate(-50%,-50%);',
       'animation:ann-pop .3s cubic-bezier(.2,.8,.2,1) backwards}',
       // Inner circle — the actual visible pin, scales on hover
       '.ann-marker-circle{cursor:pointer;width:24px;height:24px;border-radius:50%;',
@@ -456,8 +456,8 @@
       'box-shadow:0 2px 4px rgba(31,30,29,.12),0 8px 22px rgba(201,100,66,.42)}',
       '.ann-marker:hover .ann-marker-num{display:none}',
       '.ann-marker:hover .ann-marker-edit{display:flex}}',
-      '@keyframes ann-pop{from{transform:translate(-50%,-100%) scale(.8);opacity:0}',
-      'to{transform:translate(-50%,-100%) scale(1);opacity:1}}',
+      '@keyframes ann-pop{from{transform:translate(-50%,-50%) scale(.8);opacity:0}',
+      'to{transform:translate(-50%,-50%) scale(1);opacity:1}}',
 
       // Marker tooltip
       '.ann-marker-tip{position:absolute;left:30px;top:50%;transform:translateY(-50%);',
@@ -468,15 +468,15 @@
       'pointer-events:none;white-space:normal;line-height:1.5;text-wrap:pretty;',
       'opacity:0;transition:opacity .15s}',
       '.ann-marker:hover .ann-marker-tip{opacity:1}',
-      '.ann-marker-tip strong{color:#C96442;font-weight:600}',
-      '.ann-marker-tip .ann-tip-path{color:#75726B;',
-      'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;',
-      'margin-top:6px;display:block;word-break:break-all}',
+      '.ann-marker-tip .ann-tip-element{color:#9A968E;font-size:11px;',
+      'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;',
+      'display:block;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.ann-marker-tip .ann-tip-comment{color:#1F1E1D;font-size:12px;line-height:1.5}',
 
       // Popup (comment input)
       '#ann-popup{position:fixed;z-index:99998;background:#FAF9F5;',
       'border:1px solid rgba(31,30,29,.08);',
-      'border-radius:14px;padding:14px;min-width:300px;max-width:380px;',
+      'border-radius:14px;padding:18px;min-width:320px;max-width:400px;',
       'box-shadow:0 1px 2px rgba(31,30,29,.04),0 16px 48px rgba(31,30,29,.16);',
       'font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;',
       '-webkit-font-smoothing:antialiased;',
@@ -484,24 +484,26 @@
       '@keyframes ann-popup-in{from{transform:translateY(4px) scale(.98);opacity:0}',
       'to{transform:translateY(0) scale(1);opacity:1}}',
 
-      // Header (chevron + label) — click to expand path
-      '#ann-popup .ann-popup-header{display:flex;align-items:center;gap:6px;',
-      'margin-bottom:10px;cursor:pointer;user-select:none;',
-      'padding:2px 4px 2px 2px;margin-left:-4px;border-radius:6px;',
-      'transition:background .15s ease}',
-      '@media (hover:hover){#ann-popup .ann-popup-header:hover{background:#F0EEE6}}',
-      '#ann-popup .ann-popup-chevron{width:12px;height:12px;color:#75726B;flex-shrink:0;',
-      'transition:transform .2s cubic-bezier(.2,.8,.2,1)}',
-      '#ann-popup .ann-popup-header.expanded .ann-popup-chevron{transform:rotate(90deg)}',
-      '#ann-popup .ann-popup-label{color:#C96442;font-size:11px;font-weight:600;',
+      // Header — inline chevron + element name
+      '#ann-popup .ann-popup-header{display:flex;align-items:center;gap:5px;',
+      'margin-bottom:8px;cursor:pointer;user-select:none}',
+      '#ann-popup .ann-popup-chevron{color:#9A968E;flex-shrink:0;',
+      'width:14px;height:14px;display:block;',
+      'transition:transform .15s ease;transform:rotate(-90deg)}',
+      '#ann-popup .ann-popup-header.expanded .ann-popup-chevron{transform:rotate(0deg)}',
+      '#ann-popup .ann-popup-label{color:#1F1E1D;font-size:13px;font-weight:400;',
+      'font-family:ui-sans-serif,-apple-system,system-ui,sans-serif;',
+      'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}',
+
+      // Computed styles block (shown when header expanded)
+      '#ann-popup .ann-popup-styles{display:none;',
+      'background:#F5F4ED;border:1px solid rgba(31,30,29,.06);',
+      'border-radius:8px;padding:10px 12px;margin-bottom:12px;',
       'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;',
-      'display:block;letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;',
-      'white-space:nowrap;flex:1;min-width:0}',
-      '#ann-popup .ann-popup-path{display:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;',
-      'font-size:10px;color:#75726B;background:#F5F4ED;border:1px solid rgba(31,30,29,.06);',
-      'border-radius:7px;padding:6px 9px;margin-bottom:10px;',
-      'word-break:break-all;line-height:1.5}',
-      '#ann-popup .ann-popup-header.expanded + .ann-popup-path{display:block}',
+      'font-size:12px;line-height:1.7;word-break:break-word}',
+      '#ann-popup .ann-popup-header.expanded ~ .ann-popup-styles{display:block}',
+      '#ann-popup .ann-popup-styles .ann-prop{color:#C96442}',
+      '#ann-popup .ann-popup-styles .ann-val{color:#1F1E1D}',
 
       '#ann-popup textarea{width:100%;background:#F5F4ED;border:1px solid rgba(31,30,29,.08);',
       'color:#1F1E1D;border-radius:9px;padding:10px 12px;font-size:13px;',
@@ -511,27 +513,27 @@
       '#ann-popup textarea::placeholder{color:#A8A49B}',
       '#ann-popup textarea:focus{border-color:#C96442;background:#FAF9F5}',
 
-      '#ann-popup .ann-popup-actions{display:flex;gap:6px;margin-top:10px;align-items:center}',
+      '#ann-popup .ann-popup-actions{display:flex;gap:8px;margin-top:12px;align-items:center;',
+      'justify-content:flex-end}',
       '#ann-popup .ann-popup-actions .ann-spacer{flex:1}',
 
-      '#ann-popup .ann-popup-actions button{background:transparent;',
-      'border:1px solid rgba(31,30,29,.10);',
-      'color:#1F1E1D;border-radius:9px;padding:7px 14px;font-size:12px;font-weight:500;',
+      '#ann-popup .ann-popup-actions button{background:transparent;border:none;',
+      'color:#75726B;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:500;',
       'cursor:pointer;font-family:inherit;',
-      'transition:background .15s,border-color .15s,transform .1s,color .15s}',
-      '@media (hover:hover){#ann-popup .ann-popup-actions button:hover{background:#F0EEE6}}',
+      'transition:background .15s,color .15s,transform .1s}',
+      '@media (hover:hover){#ann-popup .ann-popup-actions button:hover{color:#1F1E1D}}',
       '#ann-popup .ann-popup-actions button:active{transform:scale(.97)}',
       '#ann-popup .ann-popup-actions button.primary{background:#C96442;',
-      'color:#FAF9F5;border-color:#C96442}',
-      '@media (hover:hover){#ann-popup .ann-popup-actions button.primary:hover{background:#B5573A;border-color:#B5573A}}',
-      '#ann-popup .ann-popup-actions button.icon-only{padding:7px;border-color:transparent;color:#75726B}',
+      'color:#FAF9F5;border-radius:100px;padding:8px 20px}',
+      '@media (hover:hover){#ann-popup .ann-popup-actions button.primary:hover{background:#B5573A}}',
+      '#ann-popup .ann-popup-actions button.icon-only{padding:7px;color:#9A968E}',
       '#ann-popup .ann-popup-actions button.icon-only svg{width:15px;height:15px;display:block}',
       '@media (hover:hover){#ann-popup .ann-popup-actions button.icon-only:hover{',
       'background:rgba(201,100,66,.10);color:#C96442}}',
 
-      // Active cursor
-      'body.ann-active{cursor:crosshair !important}',
-      'body.ann-active *{cursor:crosshair !important}',
+      // Active cursor — asterisk SVG
+      "body.ann-active{cursor:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 155 157' fill='none'%3E%3Cpath d='M58.8282 156.513L62.2248 103.934L18.2055 133.416L0 101.353L47.4158 78.2565L0 55.1599L18.2055 23.0965L62.2248 52.5786L58.8282 0H95.3751L91.8427 52.5786L135.862 23.0965L154.067 55.1599L106.787 78.2565L154.067 101.353L135.862 133.416L91.8427 103.934L95.3751 156.513H58.8282Z' fill='%23C96442'/%3E%3C/svg%3E\") 14 14,crosshair !important}",
+      'body.ann-active *{cursor:inherit !important}',
       // Override crosshair on the tool's own UI
       'body.ann-active #ann-toolbar,body.ann-active #ann-toolbar *,',
       'body.ann-active #ann-color-picker,body.ann-active #ann-color-picker *,',
@@ -682,6 +684,10 @@
     chevronRight: '<svg ' + ICON_ATTRS + '>' +
       '<path d="m9 18 6-6-6-6"/>' +
       '</svg>',
+    // chevron-down
+    chevronDown: '<svg ' + ICON_ATTRS + '>' +
+      '<path d="m6 9 6 6 6-6"/>' +
+      '</svg>',
     // check-circle filled (for copy success)
     checkCircleFilled: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
       '<circle cx="12" cy="12" r="10" fill="#22A55A"/>' +
@@ -706,6 +712,11 @@
   var colorSwatch, colorPicker;
   var accentSheet;
   var tipEl;
+
+  function cursorSvg(hex) {
+    var encoded = hex.replace("#", "%23");
+    return "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 155 157' fill='none'%3E%3Cpath d='M58.8282 156.513L62.2248 103.934L18.2055 133.416L0 101.353L47.4158 78.2565L0 55.1599L18.2055 23.0965L62.2248 52.5786L58.8282 0H95.3751L91.8427 52.5786L135.862 23.0965L154.067 55.1599L106.787 78.2565L154.067 101.353L135.862 133.416L91.8427 103.934L95.3751 156.513H58.8282Z' fill='" + encoded + "'/%3E%3C/svg%3E\") 14 14,crosshair";
+  }
 
   function darkenHex(hex, amt) {
     var r = Math.max(0, parseInt(hex.slice(1, 3), 16) - amt);
@@ -733,12 +744,12 @@
       "#ann-toolbar .ann-eye-badge{background:" + hex + "}",
       ".ann-collapsed-view{color:" + hex + "}",
       ".ann-collapsed-view .ann-collapsed-badge{background:" + hex + "}",
-      ".ann-marker-tip strong{color:" + hex + "}",
       "#ann-popup .ann-popup-label{color:" + hex + "}",
       "#ann-popup .ann-popup-header.expanded .ann-popup-chevron{color:" + hex + "}",
       "#ann-popup textarea:focus{border-color:" + hex + "}",
       "#ann-popup .ann-popup-actions button.primary{background:" + hex + ";border-color:" + hex + "}",
       "#ann-toast svg{color:" + hex + "}",
+      "body.ann-active{cursor:" + cursorSvg(hex) + " !important}",
       "@media (hover:hover){",
       "#ann-popup .ann-popup-actions button.primary:hover{background:" + dark + ";border-color:" + dark + "}",
       "#ann-popup .ann-popup-actions button.icon-only:hover{background:" + bg10 + ";color:" + hex + "}",
@@ -1299,19 +1310,45 @@
     closeColorPicker();
   }
 
-  function buildPopupHeader(elementName, elementPath) {
-    var header = el("div", { className: "ann-popup-header", role: "button", tabindex: "0",
-      title: "Show element path" });
-    var chev = el("span", { className: "ann-popup-chevron" });
-    chev.appendChild(iconEl("chevronRight"));
+  function getStyleEntries(target) {
+    if (!target) return [];
+    var s = window.getComputedStyle(target);
+    var entries = [];
+    var color = s.color;
+    if (color && color !== "rgb(0, 0, 0)") entries.push(["color", color]);
+    var bg = s.backgroundColor;
+    if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") entries.push(["background", bg]);
+    if (s.fontSize) entries.push(["font-size", s.fontSize]);
+    if (s.fontWeight && s.fontWeight !== "400" && s.fontWeight !== "normal") entries.push(["font-weight", s.fontWeight]);
+    if (s.fontFamily) entries.push(["font-family", s.fontFamily]);
+    var d = s.display;
+    if (d && d !== "block" && d !== "inline") entries.push(["display", d]);
+    if (s.borderRadius && s.borderRadius !== "0px") entries.push(["border-radius", s.borderRadius]);
+    if (s.padding && s.padding !== "0px") entries.push(["padding", s.padding]);
+    return entries;
+  }
+
+  function buildPopupHeader(elementName, target) {
+    var header = el("div", { className: "ann-popup-header" });
+    var chevWrap = el("span", { className: "ann-popup-chevron" });
+    chevWrap.appendChild(iconEl("chevronDown"));
     var label = el("span", { className: "ann-popup-label" }, elementName);
-    header.appendChild(chev);
+    header.appendChild(chevWrap);
     header.appendChild(label);
-    var path = el("div", { className: "ann-popup-path" }, elementPath || "");
     header.addEventListener("click", function () {
       header.classList.toggle("expanded");
     });
-    return { header: header, path: path };
+
+    var stylesBlock = el("div", { className: "ann-popup-styles" });
+    var entries = target ? (target.nodeType ? getStyleEntries(target) : target) : [];
+    entries.forEach(function (pair) {
+      var line = document.createElement("div");
+      line.innerHTML = '<span class="ann-prop">' + escHtml(pair[0]) + ':</span> ' +
+        '<span class="ann-val">' + escHtml(pair[1]) + ';</span>';
+      stylesBlock.appendChild(line);
+    });
+
+    return { header: header, styles: stylesBlock };
   }
 
   function positionPopup(x, y) {
@@ -1319,14 +1356,14 @@
     popup.style.top = Math.min(y + 12, window.innerHeight - 220) + "px";
   }
 
-  function showPopup(x, y, info, rect, selectedText) {
+  function showPopup(clickX, clickY, info, rect, selectedText) {
     closePopup();
 
     var bb = rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
 
     popup = el("div", { id: "ann-popup" });
 
-    var hp = buildPopupHeader(info.name, info.path);
+    var hp = buildPopupHeader(info.name, info.target);
     var textarea = el("textarea", { placeholder: "What should change?", rows: "3" });
 
     var cancelBtn = el("button", { onClick: function () { closePopup(); } }, "Cancel");
@@ -1336,8 +1373,8 @@
 
       var annotation = {
         id: "ann-" + (++state.counter),
-        x: rect.x + rect.width / 2 + window.scrollX,
-        y: rect.y + window.scrollY,
+        x: clickX + window.scrollX,
+        y: clickY + window.scrollY,
         comment: comment,
         element: info.name,
         elementPath: info.path,
@@ -1364,11 +1401,11 @@
     ]);
 
     popup.appendChild(hp.header);
-    popup.appendChild(hp.path);
+    popup.appendChild(hp.styles);
     popup.appendChild(textarea);
     popup.appendChild(actions);
 
-    positionPopup(x, y);
+    positionPopup(clickX, clickY);
     document.body.appendChild(popup);
     textarea.focus();
 
@@ -1385,7 +1422,14 @@
 
     popup = el("div", { id: "ann-popup" });
 
-    var hp = buildPopupHeader(ann.element, ann.elementPath);
+    // Parse stored styles string back into pairs for display
+    var pairs = [];
+    if (ann.computedStyles) {
+      ann.computedStyles.replace(/([a-z]+): ([^,]+(?:,(?![a-z]+:)[^,]*)*)/g, function (_, k, v) {
+        pairs.push([k, v.trim()]);
+      });
+    }
+    var hp = buildPopupHeader(ann.element, pairs);
     var textarea = el("textarea", { placeholder: "What should change?", rows: "3" });
     textarea.value = ann.comment;
 
@@ -1424,7 +1468,7 @@
     ]);
 
     popup.appendChild(hp.header);
-    popup.appendChild(hp.path);
+    popup.appendChild(hp.styles);
     popup.appendChild(textarea);
     popup.appendChild(actions);
 
@@ -1446,7 +1490,7 @@
   function renderMarkers() {
     markersContainer.innerHTML = "";
     state.annotations.forEach(function (a, i) {
-      var marker = el("div", { className: "ann-marker", title: "Click to edit annotation" });
+      var marker = el("div", { className: "ann-marker" });
       marker.style.left = a.x + "px";
       marker.style.top = a.y + "px";
 
@@ -1464,9 +1508,8 @@
 
       // Tooltip — sibling of circle so it doesn't scale with it
       var tip = el("div", { className: "ann-marker-tip" });
-      tip.innerHTML = "<strong>" + escHtml(a.element) + "</strong><br>" +
-        escHtml(a.comment) +
-        '<span class="ann-tip-path">' + escHtml(a.elementPath) + '</span>';
+      tip.innerHTML = '<span class="ann-tip-element">' + escHtml(a.element) + '</span>' +
+        '<span class="ann-tip-comment">' + escHtml(a.comment) + '</span>';
       marker.appendChild(tip);
 
       // Click to edit
@@ -1615,7 +1658,46 @@
         else hideToolbar();
       },
       show: showToolbar,
-      hide: hideToolbar
+      hide: hideToolbar,
+      // Programmatic API for seeding annotations and guides onto the page.
+      seed: function (annotations, seedGuides) {
+        if (annotations) {
+          annotations.forEach(function (a) {
+            var target = typeof a.target === "string"
+              ? document.querySelector(a.target) : a.target;
+            if (!target) return;
+            var rect = target.getBoundingClientRect();
+            var info = identifyElement(target, getElementPath(target));
+            var bb = "x:" + Math.round(rect.x) + ", y:" + Math.round(rect.y) +
+              " (" + Math.round(rect.width) + "x" + Math.round(rect.height) + "px)";
+            state.annotations.push({
+              id: "ann-" + (++state.counter),
+              x: rect.x + rect.width / 2 + window.scrollX,
+              y: rect.y + window.scrollY,
+              comment: a.comment || "",
+              element: info.name,
+              elementPath: info.path,
+              timestamp: Date.now(),
+              boundingBox: bb,
+              nearbyText: getNearbyText(target),
+              cssClasses: getClasses(target),
+              fullPath: getFullPath(target),
+              accessibility: getA11yInfo(target),
+              computedStyles: getComputedSnapshot(target),
+            });
+          });
+          updateCount();
+          renderMarkers();
+        }
+        if (seedGuides) {
+          seedGuides.forEach(function (g) {
+            var viewPos = g.dir === "h"
+              ? g.pos - window.scrollY
+              : g.pos - window.scrollX;
+            addGuide(g.dir, viewPos, g.pos);
+          });
+        }
+      }
     };
   }
 
