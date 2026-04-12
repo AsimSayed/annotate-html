@@ -178,8 +178,7 @@
 
   <header class="nav">
     <a href="#" class="brand">
-      <img src="../logo-mark.svg" alt="" class="brand-mark" />
-      annotate-html
+      <img src="../logo-mark.svg" alt="annotate-html" class="brand-mark" />
     </a>
     <nav class="nav-links">
       <a href="https://github.com/AsimSayed/annotate-html#readme" target="_blank" rel="noopener">Docs</a>
@@ -198,7 +197,7 @@
       </h1>
 
       <p class="lede" id="ann-lede">
-        Point at something on any website. Type what you'd change. Hit copy — you get clean markdown that Claude Code, Cursor, or Copilot can actually act on.
+        Point at something on any website. Type a note. Hit copy — you get markdown with full <span id="ann-context">context</span> that your agent can act on.
       </p>
 
       <div class="cta-row">
@@ -263,8 +262,8 @@
             comment: 'Staging URLs, competitor sites, that design reference someone Slacked you. If you can open it in Chrome, you can annotate it.'
           },
           {
-            target: '#ann-lede',
-            comment: 'Selector path, bounding box, computed styles, accessibility info \u2014 it\u2019s all in the output. Compact for quick notes, forensic when the agent needs everything.'
+            target: '#ann-context',
+            comment: 'Selector path, bounding box, computed styles, accessibility info \u2014 it\u2019s all in the output.'
           },
           {
             target: '#ann-footnote',
