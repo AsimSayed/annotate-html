@@ -33,6 +33,7 @@
     counter: 0,
     markersHidden: false,
     toolbarHidden: false,
+    rulerDragging: false,
     markerColor: "#C96442",
   };
 
@@ -558,19 +559,31 @@
       '#ann-toast svg{width:14px;height:14px;color:#C96442}',
       '#ann-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}',
 
-      // Rulers (top + left edge)
+      // Rulers — hidden by default, slide in on edge hover
+      // Base state defines EXIT transition (short, ease-in — subtle retreat)
       '#ann-ruler-h,#ann-ruler-v{position:fixed;z-index:99988;',
       'background:rgba(250,249,245,.92);backdrop-filter:blur(6px);',
-      'pointer-events:auto;cursor:crosshair;',
-      'transition:opacity .2s ease}',
+      'cursor:crosshair;pointer-events:none;',
+      'opacity:0;transition:opacity .15s ease-in,transform .15s ease-in}',
       '#ann-ruler-h{top:0;left:20px;right:0;height:20px;',
-      'border-bottom:1px solid rgba(31,30,29,.08)}',
+      'border-bottom:1px solid rgba(31,30,29,.08);',
+      'transform:translateY(-100%)}',
       '#ann-ruler-v{top:20px;left:0;bottom:0;width:20px;',
-      'border-right:1px solid rgba(31,30,29,.08)}',
+      'border-right:1px solid rgba(31,30,29,.08);',
+      'transform:translateX(-100%)}',
       '#ann-ruler-corner{position:fixed;z-index:99989;top:0;left:0;width:20px;height:20px;',
       'background:rgba(250,249,245,.92);backdrop-filter:blur(6px);',
       'border-right:1px solid rgba(31,30,29,.08);',
-      'border-bottom:1px solid rgba(31,30,29,.08)}',
+      'border-bottom:1px solid rgba(31,30,29,.08);',
+      'pointer-events:none;opacity:0;transform:scale(.9);',
+      'transition:opacity .15s ease-in,transform .15s ease-in}',
+      // Show state defines ENTER transition (longer, bouncy easing — confident slide-in)
+      '#ann-ruler-h.ann-ruler-show{opacity:1;transform:translateY(0);pointer-events:auto;',
+      'transition:opacity .3s cubic-bezier(.2,.8,.2,1),transform .3s cubic-bezier(.2,.8,.2,1)}',
+      '#ann-ruler-v.ann-ruler-show{opacity:1;transform:translateX(0);pointer-events:auto;',
+      'transition:opacity .3s cubic-bezier(.2,.8,.2,1),transform .3s cubic-bezier(.2,.8,.2,1)}',
+      '#ann-ruler-corner.ann-ruler-show{opacity:1;transform:scale(1);pointer-events:auto;',
+      'transition:opacity .3s cubic-bezier(.2,.8,.2,1),transform .3s cubic-bezier(.2,.8,.2,1)}',
       '#ann-ruler-h canvas,#ann-ruler-v canvas{display:block}',
 
       // Guide lines (dropped from rulers)
@@ -605,7 +618,8 @@
 
       // Reduced motion
       '@media (prefers-reduced-motion:reduce){',
-      '#ann-toolbar,#ann-popup,#ann-toast,.ann-marker,#ann-hover-highlight{',
+      '#ann-toolbar,#ann-popup,#ann-toast,.ann-marker,#ann-hover-highlight,',
+      '#ann-ruler-h,#ann-ruler-v,#ann-ruler-corner{',
       'transition:none !important;animation:none !important}}',
     ].join("\n");
     document.head.appendChild(style);
@@ -957,6 +971,7 @@
 
     rulerEl.addEventListener("mousedown", function (e) {
       e.preventDefault();
+      state.rulerDragging = true;
       preview = el("div", { className: "ann-guide ann-guide-" + guideDir });
       preview.style.borderColor = state.markerColor;
       preview.style.opacity = "0.5";
@@ -985,6 +1000,7 @@
       function onUp(ev) {
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
+        state.rulerDragging = false;
         if (!preview) return;
         // Check if dropped back on the ruler — cancel
         var onRuler = guideDir === "h" ? ev.clientX < 20 : ev.clientY < 20;
@@ -1157,6 +1173,57 @@
     guides = [];
   }
 
+  // ═══════════════════════════════════════════
+  // Ruler edge-hover reveal
+  // ═══════════════════════════════════════════
+
+  var RULER_EDGE_PX = 40;
+  var rulerTimerH = null, rulerTimerV = null;
+
+  function showRulerAxis(axis) {
+    if (state.markersHidden) return;
+    if (axis === "h") {
+      if (rulerTimerH) { clearTimeout(rulerTimerH); rulerTimerH = null; }
+      if (rulerH) rulerH.classList.add("ann-ruler-show");
+    } else {
+      if (rulerTimerV) { clearTimeout(rulerTimerV); rulerTimerV = null; }
+      if (rulerV) rulerV.classList.add("ann-ruler-show");
+    }
+    if (rulerCorner) rulerCorner.classList.add("ann-ruler-show");
+  }
+
+  function hideRulerAxis(axis) {
+    if (state.rulerDragging) return;
+    if (axis === "h") {
+      if (rulerTimerH) return;
+      rulerTimerH = setTimeout(function () {
+        rulerTimerH = null;
+        if (rulerH) rulerH.classList.remove("ann-ruler-show");
+        if (rulerCorner && rulerV && !rulerV.classList.contains("ann-ruler-show")) {
+          rulerCorner.classList.remove("ann-ruler-show");
+        }
+      }, 300);
+    } else {
+      if (rulerTimerV) return;
+      rulerTimerV = setTimeout(function () {
+        rulerTimerV = null;
+        if (rulerV) rulerV.classList.remove("ann-ruler-show");
+        if (rulerCorner && rulerH && !rulerH.classList.contains("ann-ruler-show")) {
+          rulerCorner.classList.remove("ann-ruler-show");
+        }
+      }, 300);
+    }
+  }
+
+  function handleRulerProximity(e) {
+    if (!rulerH) return;
+    var x = e.clientX, y = e.clientY;
+    if (y <= RULER_EDGE_PX) showRulerAxis("h");
+    else hideRulerAxis("h");
+    if (x <= RULER_EDGE_PX) showRulerAxis("v");
+    else hideRulerAxis("v");
+  }
+
   function toggleActive() {
     state.active = !state.active;
     var btn = document.getElementById("ann-toggle-btn");
@@ -1200,9 +1267,11 @@
     if (state.markersHidden) eyeBtn.classList.add("hidden-state");
     else eyeBtn.classList.remove("hidden-state");
     // Toggle rulers and guides visibility
-    if (rulerH) rulerH.style.display = state.markersHidden ? "none" : "";
-    if (rulerV) rulerV.style.display = state.markersHidden ? "none" : "";
-    if (rulerCorner) rulerCorner.style.display = state.markersHidden ? "none" : "";
+    if (state.markersHidden) {
+      if (rulerH) rulerH.classList.remove("ann-ruler-show");
+      if (rulerV) rulerV.classList.remove("ann-ruler-show");
+      if (rulerCorner) rulerCorner.classList.remove("ann-ruler-show");
+    }
     guides.forEach(function (g) {
       g.style.display = state.markersHidden ? "none" : "";
     });
@@ -1654,6 +1723,13 @@
     window.addEventListener("resize", function () {
       drawRulers();
     }, { passive: true });
+
+    // Edge-hover reveal for rulers
+    document.addEventListener("mousemove", handleRulerProximity, { passive: true });
+    document.documentElement.addEventListener("mouseleave", function () {
+      hideRulerAxis("h");
+      hideRulerAxis("v");
+    });
 
     // Publish a tiny control hook so re-injection (Chrome extension click,
     // second <script> tag, etc.) toggles this instance instead of duplicating.
