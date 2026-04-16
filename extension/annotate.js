@@ -540,12 +540,17 @@
       'body.ann-active #ann-color-picker,body.ann-active #ann-color-picker *,',
       'body.ann-active #ann-popup,body.ann-active #ann-popup *,',
       'body.ann-active .ann-marker,body.ann-active .ann-marker *{cursor:auto !important}',
+      'body.ann-active #ann-ruler-h,body.ann-active #ann-ruler-v{cursor:crosshair !important}',
+      'body.ann-active #ann-ruler-corner{cursor:default !important}',
       'body.ann-active #ann-toolbar button,body.ann-active #ann-toolbar .ann-color-swatch,',
       'body.ann-active #ann-color-picker .ann-color-opt,',
       'body.ann-active #ann-toolbar.collapsed,body.ann-active .ann-collapsed-view,',
       'body.ann-active #ann-popup button,body.ann-active #ann-popup .ann-popup-header,',
       'body.ann-active .ann-marker{cursor:pointer !important}',
       'body.ann-active #ann-popup textarea{cursor:text !important}',
+      'body.ann-active .ann-guide-handle{cursor:grab !important}',
+      'body.ann-active .ann-guide-handle:active{cursor:grabbing !important}',
+      'body.ann-active .ann-guide-close{cursor:pointer !important}',
 
       // Copied toast
       '#ann-toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-12px);',
@@ -565,10 +570,10 @@
       'background:rgba(250,249,245,.92);backdrop-filter:blur(6px);',
       'cursor:crosshair;pointer-events:none;',
       'opacity:0;transition:opacity .15s ease-in,transform .15s ease-in}',
-      '#ann-ruler-h{top:0;left:20px;right:0;height:20px;',
+      '#ann-ruler-h{top:0;left:19px;right:0;height:20px;',
       'border-bottom:1px solid rgba(31,30,29,.08);',
       'transform:translateY(-100%)}',
-      '#ann-ruler-v{top:20px;left:0;bottom:0;width:20px;',
+      '#ann-ruler-v{top:19px;left:0;bottom:0;width:20px;',
       'border-right:1px solid rgba(31,30,29,.08);',
       'transform:translateX(-100%)}',
       '#ann-ruler-corner{position:fixed;z-index:99989;top:0;left:0;width:20px;height:20px;',
@@ -1079,7 +1084,7 @@
       ctxV.moveTo(20, y + 0.5);
       ctxV.lineTo(isMajorY ? 4 : isMidY ? 10 : 14, y + 0.5);
       ctxV.stroke();
-      if (isMajorY) {
+      if (isMajorY && y >= 10) {
         ctxV.save();
         ctxV.translate(12, y + 3);
         ctxV.rotate(-Math.PI / 2);
