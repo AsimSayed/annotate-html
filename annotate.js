@@ -304,11 +304,12 @@
       'padding .36s cubic-bezier(.65,0,.35,1),',
       'border-radius .36s cubic-bezier(.65,0,.35,1),',
       'box-shadow .25s ease;',
-      'user-select:none}',
+      'user-select:none;cursor:grab}',
+      '#ann-toolbar.ann-dragging,#ann-toolbar.ann-dragging *{cursor:grabbing !important}',
 
       // Collapsed (round button) state — same element morphs
       '#ann-toolbar.collapsed{max-width:44px;padding:0;border-radius:50%;',
-      'overflow:visible;justify-content:center;cursor:pointer;',
+      'overflow:visible;justify-content:center;cursor:grab;',
       'box-shadow:0 1px 2px rgba(31,30,29,.04),0 6px 18px rgba(31,30,29,.10)}',
       '@media (hover:hover){#ann-toolbar.collapsed:hover{',
       'box-shadow:0 2px 4px rgba(31,30,29,.06),0 10px 28px rgba(31,30,29,.14)}}',
@@ -536,7 +537,8 @@
       "body.ann-active{cursor:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 155 157' fill='none'%3E%3Cpath d='M58.8282 156.513L62.2248 103.934L18.2055 133.416L0 101.353L47.4158 78.2565L0 55.1599L18.2055 23.0965L62.2248 52.5786L58.8282 0H95.3751L91.8427 52.5786L135.862 23.0965L154.067 55.1599L106.787 78.2565L154.067 101.353L135.862 133.416L91.8427 103.934L95.3751 156.513H58.8282Z' fill='%23C96442'/%3E%3C/svg%3E\") 14 14,crosshair !important}",
       'body.ann-active *{cursor:inherit !important}',
       // Override crosshair on the tool's own UI
-      'body.ann-active #ann-toolbar,body.ann-active #ann-toolbar *,',
+      'body.ann-active #ann-toolbar{cursor:grab !important}',
+      'body.ann-active #ann-toolbar *,',
       'body.ann-active #ann-color-picker,body.ann-active #ann-color-picker *,',
       'body.ann-active #ann-popup,body.ann-active #ann-popup *,',
       'body.ann-active .ann-marker,body.ann-active .ann-marker *{cursor:auto !important}',
@@ -544,7 +546,7 @@
       'body.ann-active #ann-ruler-corner{cursor:default !important}',
       'body.ann-active #ann-toolbar button,body.ann-active #ann-toolbar .ann-color-swatch,',
       'body.ann-active #ann-color-picker .ann-color-opt,',
-      'body.ann-active #ann-toolbar.collapsed,body.ann-active .ann-collapsed-view,',
+      'body.ann-active .ann-collapsed-view,',
       'body.ann-active #ann-popup button,body.ann-active #ann-popup .ann-popup-header,',
       'body.ann-active .ann-marker{cursor:pointer !important}',
       'body.ann-active #ann-popup textarea{cursor:text !important}',
@@ -935,8 +937,117 @@
 
     document.body.appendChild(toolbar);
 
+    // Make toolbar draggable
+    initToolbarDrag();
+
     // Create rulers (visible when annotation mode is active)
     createRulers();
+  }
+
+  // ═══════════════════════════════════════════
+  // Toolbar drag
+  // ═══════════════════════════════════════════
+
+  function initToolbarDrag() {
+    var dragging = false;
+    var didDrag = false;
+    var startX, startY, origLeft, origTop;
+
+    toolbar.addEventListener("mousedown", function (e) {
+      // Only drag from non-interactive surfaces
+      var node = e.target;
+      while (node && node !== toolbar) {
+        var tag = node.tagName;
+        if (tag === "BUTTON" || tag === "SELECT" || tag === "TEXTAREA" || tag === "INPUT") return;
+        if (node.className && typeof node.className === "string" &&
+            node.className.indexOf("ann-color-swatch") !== -1) return;
+        node = node.parentElement;
+      }
+
+      e.preventDefault();
+      dragging = false;
+      didDrag = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      var rect = toolbar.getBoundingClientRect();
+      origLeft = rect.left;
+      origTop = rect.top;
+
+      function onMove(ev) {
+        var dx = ev.clientX - startX;
+        var dy = ev.clientY - startY;
+        if (!dragging && Math.abs(dx) + Math.abs(dy) > 3) {
+          dragging = true;
+          didDrag = true;
+          toolbar.classList.add("ann-dragging");
+          toolbar.style.bottom = "auto";
+          toolbar.style.right = "auto";
+        }
+        if (dragging) {
+          var w = toolbar.offsetWidth;
+          var h = toolbar.offsetHeight;
+          var l = Math.max(0, Math.min(origLeft + dx, window.innerWidth - w));
+          var t = Math.max(0, Math.min(origTop + dy, window.innerHeight - h));
+          toolbar.style.left = l + "px";
+          toolbar.style.top = t + "px";
+        }
+      }
+
+      function onUp() {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        toolbar.classList.remove("ann-dragging");
+        dragging = false;
+        if (didDrag) {
+          // Anchor to whichever side the toolbar landed on
+          var rect = toolbar.getBoundingClientRect();
+          var center = rect.left + rect.width / 2;
+          if (center >= window.innerWidth / 2) {
+            // Right half — anchor right, expands leftward
+            toolbar.style.right = (window.innerWidth - rect.right) + "px";
+            toolbar.style.left = "auto";
+          }
+          // Left half — keep left anchoring, expands rightward
+
+          // Suppress the click that fires after drag
+          var suppress = function (ev) { ev.stopPropagation(); ev.preventDefault(); };
+          toolbar.addEventListener("click", suppress, true);
+          setTimeout(function () { toolbar.removeEventListener("click", suppress, true); }, 0);
+        }
+      }
+
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+
+    // Re-clamp after expand/collapse transition or window resize
+    toolbar.addEventListener("transitionend", function (e) {
+      if (e.propertyName === "max-width") clampToolbar();
+    });
+  }
+
+  function clampToolbar() {
+    if (!toolbar || toolbar.style.top === "") return;
+    var rect = toolbar.getBoundingClientRect();
+    var anchorsLeft = toolbar.style.left !== "" && toolbar.style.left !== "auto";
+
+    if (anchorsLeft) {
+      // Left-anchored — check right overflow
+      if (rect.right > window.innerWidth) {
+        toolbar.style.left = Math.max(0, window.innerWidth - rect.width) + "px";
+      }
+    } else {
+      // Right-anchored — check left overflow
+      if (rect.left < 0) {
+        toolbar.style.right = Math.max(0, window.innerWidth - rect.width) + "px";
+      }
+    }
+    if (rect.bottom > window.innerHeight) {
+      toolbar.style.top = Math.max(0, window.innerHeight - rect.height) + "px";
+    }
+    if (rect.top < 0) {
+      toolbar.style.top = "0px";
+    }
   }
 
   // ═══════════════════════════════════════════
@@ -1727,6 +1838,7 @@
     }, { passive: true });
     window.addEventListener("resize", function () {
       drawRulers();
+      clampToolbar();
     }, { passive: true });
 
     // Edge-hover reveal for rulers
