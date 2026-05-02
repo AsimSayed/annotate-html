@@ -84,27 +84,26 @@
     h1 {
       font-family: var(--serif);
       font-weight: 500;
-      font-size: clamp(38px, 4.4vw, 58px);
-      line-height: 1.04;
-      letter-spacing: -0.025em;
+      font-size: clamp(28px, 2.9vw, 38px);
+      line-height: 1.14;
+      letter-spacing: -0.02em;
       color: var(--ink);
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
-    h1 .accent { color: var(--ink); }
-    h1 .asterisk {
-      display: inline-block;
-      height: 0.7em;
-      width: 0.7em;
-      vertical-align: middle;
-      margin-right: 0.12em;
-      position: relative;
-      top: -0.14em;
+    h1 .second {
+      display: block;
+      margin-top: 0.4em;
     }
 
     .lede {
-      font-size: clamp(15px, 1.2vw, 17px);
-      line-height: 1.6; color: var(--ink-2);
-      max-width: 520px; margin-bottom: 32px;
+      font-family: var(--sans);
+      font-weight: 400;
+      font-size: clamp(16px, 1.3vw, 18px);
+      line-height: 1.55;
+      letter-spacing: -0.005em;
+      color: var(--ink-2);
+      max-width: 520px;
+      margin-bottom: 44px;
     }
     .cta-row {
       display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
@@ -127,33 +126,6 @@
       box-shadow: 0 1px 0 rgba(31,30,29,0.06), 0 6px 16px -4px rgba(31,30,29,0.22);
     }
     .btn-primary:hover { background: var(--ink-2); border-color: var(--ink-2); }
-
-    .footnote {
-      font-size: 13px; color: var(--ink-3); line-height: 1.5;
-    }
-    .footnote p { margin-bottom: 8px; }
-    .snippet-row {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .snippet {
-      font-family: var(--mono); font-size: 11px;
-      background: var(--paper-2); border: 1px solid var(--rule);
-      padding: 6px 10px; border-radius: 6px;
-      color: var(--ink-3);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 520px;
-    }
-    .copy-icon {
-      flex-shrink: 0;
-      width: 28px; height: 28px;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: none; border: 1px solid var(--rule); border-radius: 6px;
-      color: var(--ink-3); cursor: pointer;
-      transition: background 150ms var(--ease-out), color 150ms var(--ease-out);
-    }
-    .copy-icon:hover { background: var(--paper-2); color: var(--ink); }
-    .copy-icon:active { transform: scale(0.95); }
-    .copy-icon.copied { color: var(--accent); border-color: var(--accent); }
 
     /* ============ FOOTER ============ */
     .foot {
@@ -201,12 +173,41 @@
       .try-it { animation: none; opacity: 1; transform: rotate(-3deg); }
     }
 
+    .mobile-only { display: none; }
+
     @media (max-width: 860px) {
       html, body { height: auto; overflow: auto; }
       body { grid-template-rows: 72px auto auto; }
       main { padding: 32px 24px; }
       .foot { padding: 0 24px 12px; }
       .try-it { display: none; }
+    }
+
+    @media (max-width: 720px) {
+      main { padding: 64px 24px; align-items: flex-start; }
+      .desktop-only { display: none; }
+      .mobile-only {
+        display: flex;
+        flex-direction: column;
+        max-width: 380px;
+        width: 100%;
+      }
+      .mobile-title {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        margin-bottom: 14px;
+      }
+      .mobile-body {
+        font-family: var(--sans);
+        font-size: 16px;
+        line-height: 1.55;
+        color: var(--ink-2);
+      }
+      #ann-toolbar, .ann-marker, .ann-guide { display: none !important; }
     }
   </style>
 </head>
@@ -226,19 +227,18 @@
   </header>
 
   <main>
-    <section class="content">
+    <section class="content desktop-only">
       <h1 id="ann-title">
-        <img class="asterisk" src="logo-mark.svg" alt="" aria-hidden="true" />Annotate any page.<br />
-        <span class="accent">Give it to Claude.</span>
+        No more messy screenshots,<br>no more back-and-forth.
+        <span class="second">Visual feedback for <span id="ann-websites">websites</span>,<br>built for AI agents.</span>
       </h1>
 
       <p class="lede" id="ann-lede">
-        Point at something on any website. Type a note. Hit copy — you get markdown with full <span id="ann-context">context</span> that your agent can act on.
+        Activate the plugin, point at something on any website. Type a note, copy and paste in Claude — you get a markdown with full <span id="ann-context">context</span> that your agent can act on.
       </p>
 
       <div class="cta-row">
-        <!-- Replace # with actual Chrome Web Store URL -->
-        <a href="#" class="btn btn-primary">
+        <a href="https://chromewebstore.google.com/detail/annotate-html/ageaediaogfbmbmjoamkcloagepjcgdp" target="_blank" rel="noopener" class="btn btn-primary">
           <img src="chrome-webstore-logo.svg" alt="" width="18" height="18" style="vertical-align: middle;" />
           Add to Chrome
           <svg xmlns="http://www.w3.org/2000/svg" class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -249,15 +249,11 @@
         </a>
       </div>
 
-      <div class="footnote" id="ann-footnote">
-        <p>Building your own page? Drop in the script tag:</p>
-        <div class="snippet-row">
-          <code class="snippet" id="snippet">&lt;script src="https://cdn.jsdelivr.net/gh/AsimSayed/annotate-html@main/annotate.js"&gt;&lt;/script&gt;</code>
-          <button class="copy-icon" id="copySnippet" aria-label="Copy script tag">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-          </button>
-        </div>
-      </div>
+    </section>
+
+    <section class="mobile-only">
+      <h1 class="mobile-title">Annotate works on desktop.</h1>
+      <p class="mobile-body">Chrome extensions don’t run in mobile browsers. Open this page on a desktop to install.</p>
     </section>
   </main>
 
@@ -286,44 +282,18 @@
       var api = window.__annotateHtml;
       if (!api || !api.seed) return;
 
-      var title = document.getElementById('ann-title');
-      var lede = document.getElementById('ann-lede');
-      var footnote = document.getElementById('ann-footnote');
-      var content = document.querySelector('.content');
-      var navEl = document.querySelector('.nav');
-
-      if (!title || !content) return;
-
-      var titleR = title.getBoundingClientRect();
-      var contentR = content.getBoundingClientRect();
-      var footnoteR = footnote ? footnote.getBoundingClientRect() : null;
-      var navR = navEl ? navEl.getBoundingClientRect() : null;
-
       api.seed(
         [
           {
-            target: '#ann-title',
+            target: '#ann-websites',
             comment: 'Staging URLs, competitor sites, that design reference someone Slacked you. If you can open it in Chrome, you can annotate it.'
           },
           {
             target: '#ann-context',
             comment: 'Selector path, bounding box, computed styles, accessibility info \u2014 it\u2019s all in the output.'
-          },
-          {
-            target: '#ann-footnote',
-            comment: '24 KB. No build, no npm. The extension and the script tag run the same file \u2014 nothing else gets pulled in.'
           }
         ],
-        [
-          // Horizontal guide replacing nav border
-          { dir: 'h', pos: Math.round(navR ? navR.bottom + window.scrollY : 72) },
-          // Vertical guides — content left + right edges
-          { dir: 'v', pos: Math.round(contentR.left + window.scrollX) },
-          { dir: 'v', pos: Math.round(contentR.right + window.scrollX) },
-          // Horizontal guides — title top, below footnote
-          { dir: 'h', pos: Math.round(titleR.top + window.scrollY) },
-          { dir: 'h', pos: Math.round(footnoteR ? footnoteR.bottom + window.scrollY : titleR.bottom + window.scrollY + 300) }
-        ]
+        []
       );
     }
 
@@ -337,17 +307,6 @@
       window.addEventListener('load', boot);
     }
 
-    // Copy snippet button
-    var copyBtn = document.getElementById('copySnippet');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', function () {
-        var text = '<script src="https://cdn.jsdelivr.net/gh/AsimSayed/annotate-html@main/annotate.js"></' + 'script>';
-        navigator.clipboard.writeText(text).then(function () {
-          copyBtn.classList.add('copied');
-          setTimeout(function () { copyBtn.classList.remove('copied'); }, 1500);
-        });
-      });
-    }
   </script>
 </body>
 </html>
